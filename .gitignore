@@ -1,0 +1,16 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Dependencias
+node_modules/
+
+# Archivos de configuración local
+.env
+.env.local
+*.log
+
+# Archivos de respaldo
+*.bak
+*.backup

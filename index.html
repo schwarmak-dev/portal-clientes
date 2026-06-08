@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de Clientes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="texture"></div>
+
+<!-- ── Loading ─────────────────────────────────────── -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="font-size:13px;color:var(--soft)">Cargando portal...</div>
+</div>
+
+<!-- ── Notificación flotante ───────────────────────── -->
+<div class="notif-banner" id="notifBanner">
+  <button class="notif-close" onclick="closeNotif()">✕</button>
+  <div id="notifTitle" style="font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:4px;color:var(--gold)">Aviso</div>
+  <div id="notifBody"  style="font-size:12px;color:var(--soft);line-height:1.5"></div>
+</div>
+
+<!-- ── Login ────────────────────────────────────────── -->
+<div id="loginShell" style="display:none">
+  <div class="login-card">
+    <div class="login-mark">P</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:23px;letter-spacing:-.5px;margin-bottom:5px">Bienvenido</div>
+    <div style="font-size:13px;color:var(--soft);margin-bottom:28px;line-height:1.6">Accede con tus credenciales para ver el estado de tu proyecto.</div>
+
+    <div class="frow">
+      <label class="flabel">Usuario</label>
+      <input class="finput" id="lu" placeholder="tu_usuario" autocomplete="username">
+    </div>
+    <div class="frow">
+      <label class="flabel">Contraseña</label>
+      <input class="finput" type="password" id="lp" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-gold" style="width:100%;margin-top:4px" id="loginBtn">Ingresar →</button>
+    <div id="loginErr" class="alert-err" style="display:none">Usuario o contraseña incorrectos.</div>
+
+    <div style="text-align:center;margin-top:20px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+      <a href="mailto:scharmak.dev@gmail.com" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Contáctame
+      </a>
+      <a href="https://github.com/schwarmak-dev" target="_blank" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Shell del cliente ─────────────────────────────── -->
+<div id="clientShell" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div class="login-mark" style="width:28px;height:28px;font-size:13px;margin-bottom:0;flex-shrink:0">P</div>
+      <div id="cTopProj" style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:100px;padding:3px 10px 3px 3px">
+        <div id="cAvatar" style="width:22px;height:22px;border-radius:50%;background:var(--gg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gold)">?</div>
+        <span id="cName" style="font-size:11px;color:var(--soft);display:none" class="hide-mobile">—</span>
+      </div>
+      <button class="btn-ghost" onclick="logout()" style="padding:5px 10px;font-size:12px">✕</button>
+    </div>
+  </div>
+
+  <div class="tabs-bar" id="cTabs">
+    <button class="tab-btn active" data-tab="overview">Resumen</button>
+    <button class="tab-btn" data-tab="roadmap">Roadmap</button>
+    <button class="tab-btn" data-tab="evidence">Evidencias</button>
+    <button class="tab-btn" data-tab="calendar">Reuniones</button>
+    <button class="tab-btn" data-tab="changes">Solicitudes</button>
+  </div>
+
+  <div class="main fadein" id="cMain"></div>
+  <div class="footer">¿Dudas o problemas con tu acceso? Contáctame en: <a href="mailto:scharmak.dev@gmail.com">scharmak.dev@gmail.com</a></div>
+</div>
+
+<!-- ── Shell del admin ───────────────────────────────── -->
+<div id="adminShell" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <div class="login-mark" style="width:28px;height:28px;font-size:13px;margin-bottom:0;background:var(--bbg);border-color:rgba(96,165,250,.2);color:var(--blue);flex-shrink:0">A</div>
+      <select id="aProjSel" onchange="adminSwitchProj(this.value)"
+        style="background:var(--bg3);border:1px solid rgba(96,165,250,.2);border-radius:6px;padding:4px 10px;color:var(--blue);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;appearance:none;max-width:180px">
+        <!-- Opciones cargadas dinámicamente desde Supabase por populateProjectSelect() -->
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div class="hide-mobile" style="font-size:11px;color:var(--blue);background:var(--bbg);border:1px solid rgba(96,165,250,.15);border-radius:100px;padding:3px 10px">⚙ Matias</div>
+      <button class="btn-ghost" onclick="logout()" style="padding:5px 10px;font-size:12px">✕</button>
+    </div>
+  </div>
+
+  <div class="tabs-bar" id="aTabs">
+    <button class="tab-btn active" data-tab="adash">Dashboard</button>
+    <button class="tab-btn" data-tab="aroadmap">Roadmap</button>
+    <button class="tab-btn" data-tab="aevidence">Evidencias</button>
+    <button class="tab-btn" data-tab="areuniones">Reuniones <span id="aReunBadge"></span></button>
+    <button class="tab-btn" data-tab="asolicitudes">Solicitudes <span id="aSolBadge"></span></button>
+  </div>
+
+  <div class="main fadein" id="aMain"></div>
+  <div class="footer">Panel de administración · <a href="mailto:scharmak.dev@gmail.com">scharmak.dev@gmail.com</a></div>
+</div>
+
+<!-- ── Modals ────────────────────────────────────────── -->
+
+<!-- Reserva de reunión (cliente) -->
+<div class="modal-overlay" id="bookModal">
+  <div class="modal-box">
+    <div class="modal-title">Solicitar reunión</div>
+    <div class="modal-sub" id="bookModalSub"></div>
+    <div class="frow"><label class="flabel">Tu nombre</label><input class="finput" id="bookName" placeholder="Nombre Apellido"></div>
+    <div class="frow"><label class="flabel">Email</label><input class="finput" type="email" id="bookEmail" placeholder="tu@email.com"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('bookModal')">Cancelar</button>
+      <button class="btn-confirm" onclick="finalizeBooking()">Enviar solicitud →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Responder solicitud (admin) -->
+<div class="modal-overlay" id="replyModal">
+  <div class="modal-box">
+    <div class="modal-title">Responder solicitud</div>
+    <div class="modal-sub" id="replyModalSub"></div>
+    <div class="frow">
+      <label class="flabel">Nuevo estado</label>
+      <select class="finput" id="replyStatus">
+        <option value="Pendiente">Pendiente</option>
+        <option value="En revisión">En revisión</option>
+        <option value="Aprobado">Aprobado</option>
+        <option value="Completado">Completado</option>
+        <option value="Rechazado">Rechazado</option>
+      </select>
+    </div>
+    <div class="frow"><label class="flabel">Respuesta</label><textarea class="finput" id="replyText" rows="3" placeholder="Escribe tu respuesta..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('replyModal')">Cancelar</button>
+      <button class="btn-confirm" onclick="submitReply()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Agregar evidencia (admin) -->
+<div class="modal-overlay" id="evModal">
+  <div class="modal-box">
+    <div class="modal-title">Agregar evidencia</div>
+    <div class="frow"><label class="flabel">Título</label><input class="finput" id="evTitle" placeholder="Ej: Homepage v3 final"></div>
+    <div class="frow"><label class="flabel">Fecha</label><input class="finput" id="evDate" placeholder="Ej: 24 May 2025"></div>
+    <div class="frow"><label class="flabel">Nota para el cliente</label><input class="finput" id="evNote" placeholder="Opcional"></div>
+    <div class="frow">
+      <label class="flabel">Ícono</label>
+      <div class="icon-grid" id="iconGrid"></div>
+      <input class="finput" id="evIconCustom" placeholder="O escribe emoji personalizado 🔥" style="margin-top:8px;font-size:18px;text-align:center">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('evModal')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveEvidence()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Editar tarea (admin roadmap) -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal-box">
+    <div class="modal-title">Editar tarea</div>
+    <div class="frow"><label class="flabel">Nombre</label><input class="finput" id="taskEditName" placeholder="Nombre de la tarea"></div>
+    <div class="frow"><label class="flabel">Fecha / Estado</label><input class="finput" id="taskEditDate" placeholder="Ej: Jun 2025"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('taskModal')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveTaskEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
