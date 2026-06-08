@@ -125,6 +125,10 @@ Edita las variables CSS en `styles.css`:
 }
 ```
 
+## Security Audit
+
+Agradecimientos especiales a **Camilo Martinez** por su revisión de ciberseguridad y asesoría en las mejores prácticas de autenticación y protección de datos.
+
 ## License
 
 MIT
