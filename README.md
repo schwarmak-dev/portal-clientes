@@ -1,142 +1,227 @@
-# Portal de Clientes
+<div align="center">
 
-Una aplicación web completa para gestión de proyectos y portal de clientes, diseñada para freelancers y agencias que necesitan mantener a sus clientes informados sobre el progreso de sus proyectos.
+# 🚀 PORTAL DE CLIENTES
 
-## Features
+### La app que tus clientes no sabían que necesitaban
 
-- **Panel de Cliente** — Vista del cliente con progreso, roadmap, evidencias, reuniones y solicitudes
-- **Panel de Administración** — Control total para gestionar proyectos, tareas y clientes
-- **Autenticación Segura** — Login con Supabase y verificación bcrypt en servidor
-- **Drag & Drop Roadmap** — Mueve tareas entre columnas arrastrando tarjetas
-- **Calendario de Reuniones** — Reserva y gestiona reuniones con recordatorios automáticos
-- **Gestión de Evidencias** — Sube y organiza capturas de avance del proyecto
-- **Solicitudes de Cambio** — Los clientes pueden pedir ajustes y recibir respuestas
-- **Modo Offline** — Funciona con datos de demo cuando Supabase no está configurado
-- **Sesión Segura** — Cierre automático por inactividad (30 minutos)
-- **Notificaciones** — Alertas en tiempo real para reuniones y cambios
-
-## Tech Stack
-
-- **Frontend:** HTML5, CSS3, JavaScript vanilla
-- **Backend:** Supabase (PostgreSQL + Auth + REST API)
-- **Fonts:** Syne, DM Sans, DM Mono (Google Fonts)
-- **Deploy:** Netlify (arrastrando archivos)
-
-## Project Structure
-
-```
-portal/
-├── index.html              # Estructura principal
-├── app.js                  # Lógica de la aplicación
-├── styles.css              # Estilos CSS
-├── paso1_fix_seguridad.sql # Script de migración de seguridad
-├── paso2_funcion_rpc.sql   # Función RPC de verificación
-└── leeme_pasos.md          # Guía de configuración de seguridad
-```
-
-## Quick Start
-
-### Opción 1: Modo Demo (sin Supabase)
-
-1. Abre `index.html` en tu navegador
-2. Usa las credenciales demo:
-   - **Admin:** `schwaradmin` / `admin123`
-   - **Cliente:** `acme` / `acme123`
-
-### Opción 2: Con Supabase
-
-1. Crea un proyecto en [Supabase](https://supabase.com)
-2. Ejecuta los scripts SQL en el SQL Editor:
-   - `paso1_fix_seguridad.sql` — Configura bcrypt y RLS
-   - `paso2_funcion_rpc.sql` — Crea la función de autenticación
-3. Actualiza las credenciales en `app.js`:
-   ```javascript
-   const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-   const SUPABASE_ANON_KEY = 'tu-anon-key-aqui';
-   ```
-4. Despliega en Netlify
-
-## Database Schema
-
-### Tabla `users`
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| username | text | Nombre de usuario (PK) |
-| password_hash | text | Hash bcrypt de la contraseña |
-| display_name | text | Nombre visible |
-| project_slug | text | Slug del proyecto asociado |
-| role | text | `client` o `admin` |
-
-### Tabla `projects`
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| slug | text | Identificador único (PK) |
-| data | jsonb | Datos completos del proyecto |
-| updated_at | timestamp | Última actualización |
-
-## Security
-
-- Contraseñas hasheadas con bcrypt (no base64)
-- Verificación en servidor vía RPC (el hash nunca sale de la BD)
-- Row Level Security (RLS) habilitado
-- Sesiones con timeout de inactividad
-
-Para más detalles, consulta [leeme_pasos.md](leeme_pasos.md).
-
-## Customization
-
-### Agregar un nuevo cliente
-
-1. Ejecuta en Supabase SQL Editor:
-   ```sql
-   INSERT INTO projects (slug, data) VALUES (
-     'micliente',
-     '{
-       "name": "Nombre Proyecto",
-       "client": "Empresa",
-       "progress": 0,
-       "phases": ["Fase 1","Fase 2","Entrega"],
-       "phaseDone": 0,
-       "done": [], "wip": [],
-       "pending": [{"id":1,"name":"Kick-off","date":"Por definir"}],
-       "evidence": [], "changes": [], "reuniones": []
-     }'::jsonb
-   );
-
-   INSERT INTO users (username, password_hash, display_name, project_slug, role)
-   VALUES (
-     'micliente',
-     crypt('ContraseñaSegura!', gen_salt('bf', 12)),
-     'Nombre Visible',
-     'micliente',
-     'client'
-   );
-   ```
-
-### Cambiar colores
-
-Edita las variables CSS en `styles.css`:
-```css
-:root {
-  --gold: #f59e0b;
-  --blue: #60a5fa;
-  --green: #4ade80;
-  /* ... */
-}
-```
-
-## Security Audit
-
-Agradecimientos especiales a **Camilo Martinez** por su revisión de ciberseguridad y asesoría en las mejores prácticas de autenticación y protección de datos.
-
-## License
-
-MIT
-
-## Author
-
-**Matias Schwarzmuller** — [scharmak.dev@gmail.com](mailto:scharmak.dev@gmail.com)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Netlify](https://img.shields.io/badge/Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)
 
 ---
 
-Desarrollado con ? para freelancers y agencias que valoran la transparencia con sus clientes.
+**Un portal de clientes que hace que tu negocio freelance se vea 10x más profesional.**
+
+Olvídate de los emails interminables y las llamadas de "¿cómo va el proyecto?".
+Tus clientes se logean, ven su progreso, y tú te ahorras tiempo.
+
+[🚀 Demo Rápida](#-quick-start) · [📦 Instalación](#-quick-start) · [🛠️ Personalizar](#-personalizar)
+
+---
+
+</div>
+
+## ✨ ¿Por qué te va a encantar?
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎯 Para ti (el dev)
+
+- **Zero frameworks** — Vanilla JS puro, sin dependencias raras
+- **Supabase** — Base de datos + auth en 5 minutos
+- **Drag & Drop** — Roadmap interactivo con un solo drag
+- **Modo offline** — Funciona sin servidor para testing
+- **100% customizable** — Cambia colores, logos, lo que quieras
+
+</td>
+<td width="50%" valign="top">
+
+### 👨‍💼 Para tus clientes
+
+- **Panel intuitivo** — Ven el progreso sin preguntarte
+- **Evidencias** — Capturas y avances en tiempo real
+- **Reuniones** — Reservan slots y tú confirmas
+- **Solicitudes** — Piden cambios sin romper nada
+- **Notificaciones** — Recordatorios automáticos
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🔥 Features
+
+| Feature | Descripción |
+|---------|-------------|
+| 🔐 **Auth Seguro** | Bcrypt + verificación en servidor (nada de base64) |
+| 📊 **Dashboard** | Vista completa del progreso con stats en tiempo real |
+| 🗂️ **Roadmap Drag & Drop** | Mueve tareas entre columnas como un Kanban |
+| 📸 **Evidencias** | Sube capturas, screenshots, diseños |
+| 📅 **Calendario** | Reserva de reuniones con recordatorios |
+| 💬 **Solicitudes** | Los clientes piden cambios, tú respondes |
+| ⏱️ **Auto-logout** | Sesión segura por inactividad |
+| 🌙 **Modo Demo** | Prueba sin configurar nada |
+
+---
+
+## 🚀 Quick Start
+
+### Opción 1: Modo Demo (0 config)
+
+```bash
+git clone https://github.com/schwarmak-dev/portal-clientes.git
+cd portal-clientes
+open index.html  # ¡Listo! Abre en tu navegador
+```
+
+**Credenciales demo:**
+| Rol | Usuario | Contraseña |
+|-----|---------|------------|
+| 👑 Admin | `schwaradmin` | `admin123` |
+| 👤 Cliente | `acme` | `acme123` |
+
+### Opción 2: Con Supabase (producción)
+
+```bash
+# 1. Clonar
+git clone https://github.com/schwarmak-dev/portal-clientes.git
+cd portal-clientes
+
+# 2. Crear proyecto en Supabase (gratis)
+
+# 3. Ejecutar SQLs en Supabase Dashboard > SQL Editor
+#    - paso1_fix_seguridad.sql
+#    - paso2_funcion_rpc.sql
+
+# 4. Editar app.js con tus credenciales
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+const SUPABASE_ANON_KEY = 'tu-anon-key';
+
+# 5. Deploy a Netlify (arrastra la carpeta)
+```
+
+---
+
+## 📁 Estructura
+
+```
+portal/
+├── 📄 index.html              # Entry point
+├── ⚡ app.js                  # Toda la lógica ( vanilla 🍦 )
+├── 🎨 styles.css              # Dark theme included
+├── 🔒 paso1_fix_seguridad.sql # bcrypt migration
+├── 🔑 paso2_funcion_rpc.sql   # Auth RPC function
+└── 📖 leeme_pasos.md          # Security guide
+```
+
+---
+
+## 🗄️ Database Schema
+
+### `users`
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `username` | `text` | PK — login |
+| `password_hash` | `text` | bcrypt hash 🔒 |
+| `display_name` | `text` | Nombre visible |
+| `project_slug` | `text` | FK → projects |
+| `role` | `text` | `client` \| `admin` |
+
+### `projects`
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `slug` | `text` | PK — identificador único |
+| `data` | `jsonb` | Todo el proyecto en JSON |
+| `updated_at` | `timestamp` | Última actualización |
+
+---
+
+## 🛡️ Security
+
+```
+❌ ANTES:  btoa(password) = base64 = cualquiera lo lee
+✅ AHORA:  bcrypt + RPC = hash nunca sale de la BD
+```
+
+- ✅ Bcrypt con salt rounds = 12
+- ✅ Verificación server-side via Supabase RPC
+- ✅ Row Level Security (RLS) habilitado
+- ✅ Auto-logout por inactividad (30 min)
+- ✅ Tokens de sesión seguros
+
+> 📖 Ver guía completa: [leeme_pasos.md](leeme_pasos.md)
+
+---
+
+## 🎨 Personalizar
+
+### Cambiar colores
+
+```css
+:root {
+  --gold: #f59e0b;    /* Color principal */
+  --blue: #60a5fa;    /* Admin accent */
+  --green: #4ade80;   /* Success */
+  --red: #f87171;     /* Danger */
+  /* ... solo cambia estas variables */
+}
+```
+
+### Agregar cliente
+
+```sql
+-- En Supabase SQL Editor:
+INSERT INTO projects (slug, data) VALUES (
+  'nuevo-cliente',
+  '{
+    "name": "Proyecto Increíble",
+    "client": "Empresa S.A.",
+    "progress": 0,
+    "phases": ["Discovery", "Build", "Launch"],
+    "phaseDone": 0,
+    "done": [], "wip": [],
+    "pending": [{"id":1,"name":"Kick-off","date":"TBD"}],
+    "evidence": [], "changes": [], "reuniones": []
+  }'::jsonb
+);
+```
+
+---
+
+## 👥 Credits
+
+### Autor
+
+**Matias Schwarzmuller** — [@schwarmak-dev](https://github.com/schwarmak-dev)
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:scharmak.dev@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/schwarmak-dev)
+
+### Security Audit
+
+🛡️ **Camilo Martinez** — Ciberseguridad y mejores prácticas de autenticación
+
+---
+
+## 📜 License
+
+MIT © 2025
+
+---
+
+<div align="center">
+
+**¿Te gustó?** Dale una ⭐ al repo
+
+**¿Necesitas ayuda?** [Ábre un issue](https://github.com/schwarmak-dev/portal-clientes/issues)
+
+---
+
+*Hecho con ☕ y mucho ☕ para freelancers que valoran el tiempo*
+
+</div>
