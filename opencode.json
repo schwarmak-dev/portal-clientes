@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "shell": "powershell",
+  "command": {
+    "bug-hunter": {
+      "description": "Escanea el proyecto completo en busca de bugs, vulnerabilidades, malas practicas y errores de seguridad",
+      "template": "Eres un bug hunter senior. Escanea TODO el proyecto (index.html, app.js, styles.css, los .sql) en busca de:\n\n1. Vulnerabilidades de seguridad (XSS, exposicion de datos, keys expuestas)\n2. Bugs logicos en el JavaScript\n3. Malas practicas de codigo\n4. Posibles errores en runtime\n5. Problemas de performance\n6. Errores de accesibilidad en HTML\n7. SQL injection o problemas en los scripts SQL\n8. Edge cases no manejados\n\nPara CADA hallazgo indica:\n- Archivo y linea exacta\n- Severidad (critica / alta / media / baja)\n- Descripcion del problema\n- Codigo problematico\n- Solucion propuesta\n- Codigo corregido\n\nAl final entrega un resumen con el total de hallazgos por severidad."
+    }
+  }
+}
