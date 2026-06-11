@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL      = 'https://zmqwqbmdyjqpqktclvxv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_gbBvt25g9uwyFD91MTGc6w_rf-MT672';
-const IS_CONFIGURED     = !SUPABASE_URL.includes('TU_PROJECT_ID');
+const IS_CONFIGURED     = false; // Cambiar a !SUPABASE_URL.includes('TU_PROJECT_ID') cuando tengas Supabase
 
 // ═══════════════════════════════════════════════════════
 //  CONSTANTES
@@ -78,7 +78,13 @@ const FALLBACK_PROJECTS = {
   },
 };
 
-const LOCAL_USERS = {}; // Solo para modo demo local
+const LOCAL_USERS = {
+  admin:      { name: 'Matias',       project: 'acme', role: 'admin',  hash: btoa('admin.123') },
+  acme:       { name: 'Equipo ACME',  project: 'acme', role: 'client', hash: btoa('acme.123') },
+  nova:       { name: 'Nova Inc',     project: 'nova', role: 'client', hash: btoa('nova.123') },
+  sebastian:  { name: 'Sebastian G.', project: 'sebastian', role: 'client', hash: btoa('sebastian.123') },
+  duoc:       { name: 'Duoc UC',      project: 'duoc', role: 'client', hash: btoa('duoc.123') },
+};
 
 // ═══════════════════════════════════════════════════════
 //  ESTADO GLOBAL
