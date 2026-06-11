@@ -78,7 +78,7 @@ const FALLBACK_PROJECTS = {
   },
 };
 
-const LOCAL_USERS = {}; // Solo Supabase en producción — no exponer contraseñas aquí
+const LOCAL_USERS = {}; // Solo para modo demo local
 
 // ═══════════════════════════════════════════════════════
 //  ESTADO GLOBAL
@@ -87,7 +87,7 @@ let currentUser    = null;
 let currentProject = null;
 let clientTab      = 'overview';
 let adminTab       = 'adash';
-let calendar       = { y:2025, m:4, selDay:null, selSlot:null };
+let calendar       = { y:new Date().getFullYear(), m:new Date().getMonth(), selDay:null, selSlot:null };
 let pendingBooking = null;
 let replyingId     = null;
 let editingTask    = null;
@@ -109,47 +109,71 @@ const SB_HEADERS = {
   'Content-Type':  'application/json',
 };
 
+function genId() {
+  return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 async function sbGet(table, queryString) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${queryString}`, { headers: SB_HEADERS });
-    return res.ok ? await res.json() : null;
-  } catch { return null; }
+    if (!res.ok) { console.error(`[sbGet] ${table}: ${res.status} ${res.statusText}`); return null; }
+    return await res.json();
+  } catch (e) { console.error(`[sbGet] ${table} fetch error:`, e.message); return null; }
 }
 
 async function sbUpsert(table, body) {
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method:  'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body:    JSON.stringify(body),
     });
-  } catch {}
+    if (!res.ok) { console.error(`[sbUpsert] ${table}: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
+    return { ok: true };
+  } catch (e) { console.error(`[sbUpsert] ${table} fetch error:`, e.message); return { ok: false, error: e.message }; }
 }
 
 async function loadProject(slug) {
+  if (!slug) return null;
   if (IS_CONFIGURED) {
-    const rows = await sbGet('projects', `slug=eq.${slug}&select=data`);
+    const rows = await sbGet('projects', `slug=eq.${slug}&select=data,updated_at`);
     if (rows?.length) return rows[0].data;
-    return JSON.parse(JSON.stringify(FALLBACK_PROJECTS[slug]));
+    const fallback = FALLBACK_PROJECTS[slug];
+    return fallback ? JSON.parse(JSON.stringify(fallback)) : null;
   }
   try {
     const stored = localStorage.getItem('portal_v3');
     const all    = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FALLBACK_PROJECTS));
-    return all[slug] || FALLBACK_PROJECTS[slug];
-  } catch { return JSON.parse(JSON.stringify(FALLBACK_PROJECTS[slug])); }
+    return all[slug] || FALLBACK_PROJECTS[slug] || null;
+  } catch { return FALLBACK_PROJECTS[slug] ? JSON.parse(JSON.stringify(FALLBACK_PROJECTS[slug])) : null; }
 }
 
 async function saveProject(slug, data) {
+  if (!slug || !data) return { ok: false, error: 'Invalid params' };
   if (IS_CONFIGURED) {
-    await sbUpsert('projects', { slug, data, updated_at: new Date().toISOString() });
-    return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/save_project`, {
+        method:  'POST',
+        headers: { ...SB_HEADERS, 'Prefer': 'return=representation' },
+        body:    JSON.stringify({ p_slug: slug, p_data: data }),
+      });
+      if (!res.ok) { console.error(`[saveProject] RPC: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
+      return { ok: true };
+    } catch (e) { console.error('[saveProject] RPC fetch error:', e.message); return { ok: false, error: e.message }; }
   }
   try {
     const stored = localStorage.getItem('portal_v3');
     const all    = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FALLBACK_PROJECTS));
     all[slug]    = data;
     localStorage.setItem('portal_v3', JSON.stringify(all));
-  } catch {}
+    return { ok: true };
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      showNotif('Almacenamiento lleno', 'Se superó el límite de almacenamiento local. Libera espacio.', 8000);
+    }
+    console.error('[saveProject] localStorage error:', e.message);
+    return { ok: false, error: e.message };
+  }
 }
 
 async function authenticateUser(username, password) {
@@ -187,7 +211,13 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Reinicia el timer cada vez que el usuario hace algo
-function resetInactivityTimer() {
+let debounceTimer = null;
+function resetInactivityTimer(debounced = false) {
+  if (debounced) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(resetInactivityTimer, 10000);
+    return;
+  }
   clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
     if (currentUser) {
@@ -198,14 +228,18 @@ function resetInactivityTimer() {
 }
 
 function startInactivityWatcher() {
-  ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev =>
-    document.addEventListener(ev, resetInactivityTimer, { passive: true })
+  ['mousemove', 'scroll'].forEach(ev =>
+    document.addEventListener(ev, () => resetInactivityTimer(true), { passive: true })
+  );
+  ['keydown', 'click', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => resetInactivityTimer(), { passive: true })
   );
   resetInactivityTimer();
 }
 
 function stopInactivityWatcher() {
   clearTimeout(inactivityTimer);
+  clearTimeout(debounceTimer);
   ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev =>
     document.removeEventListener(ev, resetInactivityTimer)
   );
@@ -259,7 +293,7 @@ function logout() {
   currentProject = null;
   clientTab      = 'overview';
   adminTab       = 'adash';
-  calendar       = { y:2025, m:4, selDay:null, selSlot:null };
+  calendar       = { y:new Date().getFullYear(), m:new Date().getMonth(), selDay:null, selSlot:null };
 
   reminderTimers.forEach(t => clearTimeout(t));
   reminderTimers = [];
@@ -297,9 +331,17 @@ function closeNotif() { document.getElementById('notifBanner').classList.remove(
 function scheduleReminders(meeting) {
   reminderTimers.forEach(t => clearTimeout(t));
   reminderTimers = [];
-  const t1 = setTimeout(() => showNotif('📅 Reunión en 1 hora', `${meeting.nombre} · ${meeting.dia} de ${MONTHS[meeting.mes]} · ${meeting.hora}`, 8000), 5000);
-  const t2 = setTimeout(() => showNotif('🔔 Reunión hoy',       `${meeting.nombre} · ${meeting.hora} · ${meeting.email}`, 8000), 12000);
-  reminderTimers.push(t1, t2);
+  const now    = Date.now();
+  const target = new Date(meeting.anio, meeting.mes, meeting.dia, parseInt(meeting.hora, 10), 0, 0).getTime();
+  const oneHourBefore = target - 3600000;
+  if (oneHourBefore > now) {
+    const t1 = setTimeout(() => showNotif('Reunión en 1 hora', `${meeting.nombre} · ${meeting.dia} de ${MONTHS[meeting.mes]} · ${meeting.hora}`, 8000), oneHourBefore - now);
+    reminderTimers.push(t1);
+  }
+  if (target > now) {
+    const t2 = setTimeout(() => showNotif('Reunión ahora', `${meeting.nombre} · ${meeting.hora} · ${meeting.email}`, 8000), target - now);
+    reminderTimers.push(t2);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -326,6 +368,7 @@ function initClient() {
 async function renderClientView() {
   if (!projectCache[currentProject]) projectCache[currentProject] = await loadProject(currentProject);
   const project = projectCache[currentProject];
+  if (!project) return;
   const el      = document.getElementById('cMain');
   el.className  = 'main fadein';
 
@@ -347,7 +390,7 @@ async function renderClientView() {
 function buildClientOverview(p) {
   const phaseChips = p.phases.map((phase, i) => {
     const cls = i < p.phaseDone ? 'ph-done' : i === p.phaseDone ? 'ph-wip' : 'ph-pend';
-    return `<span class="phase-chip ${cls}">${phase}</span>`;
+    return `<span class="phase-chip ${cls}">${esc(phase)}</span>`;
   }).join('');
 
   return `
@@ -360,7 +403,7 @@ function buildClientOverview(p) {
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
-          <div class="card-title" style="margin-bottom:7px">${p.name}</div>
+          <div class="card-title" style="margin-bottom:7px">${esc(p.name)}</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">${phaseChips}</div>
         </div>
         <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:700;color:var(--gold);line-height:1;letter-spacing:-1px">
@@ -368,7 +411,7 @@ function buildClientOverview(p) {
         </div>
       </div>
       <div class="prog-track"><div class="prog-fill" id="cProgFill" style="width:0%"></div></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:8px">Cliente: ${p.client}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">Cliente: ${esc(p.client)}</div>
     </div>
     <div class="g2">
       <div class="card">
@@ -395,8 +438,8 @@ function buildClientRoadmap(p) {
       </div>
       ${tasks.map(t => `
         <div class="rm-task-card" style="cursor:default">
-          <div class="rm-task-name">${t.name}</div>
-          <div class="rm-task-date">${t.date}</div>
+          <div class="rm-task-name">${esc(t.name)}</div>
+          <div class="rm-task-date">${esc(t.date)}</div>
         </div>`).join('') || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Sin tareas</div>'}
     </div>`;
 
@@ -421,9 +464,9 @@ function buildClientEvidence(p) {
           <div class="ev-card">
             <div class="ev-thumb">${e.icon}</div>
             <div class="ev-cap">
-              <div class="ev-title">${e.title}</div>
-              <div class="ev-date">${e.date}</div>
-              ${e.note ? `<div style="font-size:11px;color:var(--gold);margin-top:5px">📝 ${e.note}</div>` : ''}
+              <div class="ev-title">${esc(e.title)}</div>
+              <div class="ev-date">${esc(e.date)}</div>
+              ${e.note ? `<div style="font-size:11px;color:var(--gold);margin-top:5px">📝 ${esc(e.note)}</div>` : ''}
             </div>
           </div>`).join('')}
       </div>
@@ -434,10 +477,10 @@ function buildClientChanges(p) {
   const changeItems = p.changes.length
     ? p.changes.map(c => `
         <div class="cr-item">
-          <div class="cr-head"><div class="cr-title">${c.title}</div>${pillHtml(c.status)}</div>
-          <div class="cr-meta">${c.type} · Prioridad: ${c.priority} · ${c.date}</div>
-          <div class="cr-desc">${c.desc}</div>
-          ${c.reply ? `<div class="cr-reply">💬 <strong>Respuesta:</strong> ${c.reply}</div>` : ''}
+          <div class="cr-head"><div class="cr-title">${esc(c.title)}</div>${pillHtml(c.status)}</div>
+          <div class="cr-meta">${esc(c.type)} · Prioridad: ${esc(c.priority)} · ${esc(c.date)}</div>
+          <div class="cr-desc">${esc(c.desc)}</div>
+          ${c.reply ? `<div class="cr-reply">💬 <strong>Respuesta:</strong> ${esc(c.reply)}</div>` : ''}
         </div>`).join('')
     : '<div style="color:var(--muted);font-size:13px">Sin solicitudes aún.</div>';
 
@@ -482,7 +525,7 @@ function wireClientChanges() {
 
     projectCache[currentProject] = await loadProject(currentProject);
     projectCache[currentProject].changes.unshift({
-      id: Date.now(), title, desc, type, priority,
+      id: genId(), title, desc, type, priority,
       status: 'Pendiente',
       date:   new Date().toLocaleDateString('es-CL'),
       reply:  '', seen: false,
@@ -496,6 +539,7 @@ function wireClientChanges() {
 //  VISTA ADMIN
 // ═══════════════════════════════════════════════════════
 async function initAdmin() {
+  document.getElementById('aAdminName').textContent = `⚙ ${currentUser.name}`;
   document.querySelectorAll('#aTabs .tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchAdminTab(btn.dataset.tab))
   );
@@ -513,7 +557,7 @@ async function populateProjectSelect() {
     const rows = await sbGet('projects', 'select=slug,data->>name,data->>client&order=slug.asc');
     if (rows?.length) {
       select.innerHTML = rows.map(r =>
-        `<option value="${r.slug}">${r.client} · ${r.name}</option>`
+        `<option value="${r.slug}">${esc(r.client)} · ${esc(r.name)}</option>`
       ).join('');
       currentProject = rows[0].slug;
       select.value   = currentProject;
@@ -523,7 +567,7 @@ async function populateProjectSelect() {
 
   // Fallback local cuando no hay Supabase configurado
   select.innerHTML = Object.entries(FALLBACK_PROJECTS).map(([slug, p]) =>
-    `<option value="${slug}">${p.client} · ${p.name}</option>`
+    `<option value="${slug}">${esc(p.client)} · ${esc(p.name)}</option>`
   ).join('');
   currentProject = Object.keys(FALLBACK_PROJECTS)[0];
   select.value   = currentProject;
@@ -547,6 +591,7 @@ async function renderAdminView() {
   // Siempre recarga para que el admin vea cambios del cliente en tiempo real
   projectCache[currentProject] = await loadProject(currentProject);
   const project = projectCache[currentProject];
+  if (!project) return;
 
   const unreadCount   = project.changes.filter(c => !c.seen).length;
   const pendingMeetings = project.reuniones.filter(r => r.estado === 'Solicitada').length;
@@ -594,7 +639,7 @@ function buildAdminDash(p) {
 
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="card-title" style="margin-bottom:0">${p.name} — ${p.client}</div>
+        <div class="card-title" style="margin-bottom:0">${esc(p.name)} — ${esc(p.client)}</div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:12px;color:var(--muted)">Progreso:</span>
           <input type="number" id="dashProg" value="${p.progress}" min="0" max="100"
@@ -610,8 +655,8 @@ function buildAdminDash(p) {
         <div class="card-title" style="color:var(--red)">⚠ Solicitudes sin revisar (${unread.length})</div>
         ${unread.slice(0,3).map(c => `
           <div class="cr-item">
-            <div class="cr-head"><div class="cr-title">${c.title}</div>${pillHtml(c.status)}</div>
-            <div class="cr-meta">${c.type} · ${c.priority} · ${c.date}</div>
+            <div class="cr-head"><div class="cr-title">${esc(c.title)}</div>${pillHtml(c.status)}</div>
+            <div class="cr-meta">${esc(c.type)} · ${esc(c.priority)} · ${esc(c.date)}</div>
           </div>`).join('')}
         <button class="btn-gold" style="width:auto;padding:8px 18px;margin-top:8px" onclick="switchAdminTab('asolicitudes')">Ver todas →</button>
       </div>` : ''}
@@ -622,7 +667,7 @@ function buildAdminDash(p) {
         ${pendingMtg.map(r => `
           <div class="cr-item">
             <div class="cr-head">
-              <div class="cr-title">${r.nombre}</div><span class="pill pill-yellow">Solicitada</span>
+              <div class="cr-title">${esc(r.nombre)}</div><span class="pill pill-yellow">Solicitada</span>
             </div>
             <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · ${r.email}</div>
           </div>`).join('')}
@@ -643,8 +688,8 @@ function buildAdminDash(p) {
         <div class="card-title">Última evidencia</div>
         ${lastEv
           ? `<div class="ev-thumb" style="height:75px;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px">${lastEv.icon}</div>
-             <div style="font-size:13px;font-weight:500">${lastEv.title}</div>
-             <div style="font-size:11px;color:var(--muted)">${lastEv.date}</div>`
+             <div style="font-size:13px;font-weight:500">${esc(lastEv.title)}</div>
+             <div style="font-size:11px;color:var(--muted)">${esc(lastEv.date)}</div>`
           : '<div style="color:var(--muted);font-size:13px">Sin evidencias aún.</div>'}
         <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="switchAdminTab('aevidence')">Gestionar →</button>
       </div>
@@ -653,10 +698,12 @@ function buildAdminDash(p) {
 
 function wireAdminDash() {
   document.getElementById('saveProgBtn')?.addEventListener('click', async () => {
-    const value = parseInt(document.getElementById('dashProg').value);
+    const value = parseInt(document.getElementById('dashProg').value, 10);
     if (isNaN(value) || value < 0 || value > 100) { alert('Valor entre 0 y 100.'); return; }
     projectCache[currentProject].progress = value;
+    setSaving(true);
     await saveProject(currentProject, projectCache[currentProject]);
+    setSaving(false);
     renderAdminView();
   });
 }
@@ -720,7 +767,7 @@ function wireAdminRoadmap() {
   // Drag & drop
   document.querySelectorAll('.rm-task-card').forEach(card => {
     card.addEventListener('dragstart', e => {
-      dragItem = { id: parseInt(card.dataset.id), col: card.dataset.col };
+      dragItem = { id: card.dataset.id, col: card.dataset.col };
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
     });
@@ -762,19 +809,19 @@ function wireAdminRoadmap() {
   // Editar / eliminar tarea
   document.querySelectorAll('.rm-task-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-      const task = projectCache[currentProject][btn.dataset.col].find(t => t.id === parseInt(btn.dataset.id));
+      const task = projectCache[currentProject][btn.dataset.col].find(t => t.id === btn.dataset.id);
       if (!task) return;
-      editingTask = { id: parseInt(btn.dataset.id), col: btn.dataset.col };
+      editingTask = { id: btn.dataset.id, col: btn.dataset.col };
       document.getElementById('taskEditName').value = task.name;
       document.getElementById('taskEditDate').value = task.date;
-      document.getElementById('taskModal').classList.add('open');
+      openModal('taskModal', 'taskEditName');
     });
   });
 
   document.querySelectorAll('.rm-task-del').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta tarea?')) return;
-      projectCache[currentProject][btn.dataset.col] = projectCache[currentProject][btn.dataset.col].filter(t => t.id !== parseInt(btn.dataset.id));
+      projectCache[currentProject][btn.dataset.col] = projectCache[currentProject][btn.dataset.col].filter(t => t.id !== btn.dataset.id);
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
@@ -810,7 +857,7 @@ async function addTask(col) {
     wip:     'En curso',
     pending: 'Por definir',
   };
-  projectCache[currentProject][col].push({ id: Date.now(), name, date: dateByCol[col] });
+  projectCache[currentProject][col].push({ id: genId(), name, date: dateByCol[col] });
   await saveProject(currentProject, projectCache[currentProject]);
   renderAdminView();
 }
@@ -857,7 +904,7 @@ function buildAdminEvidence(p) {
 function wireAdminEvidence() {
   document.querySelectorAll('.inline-edit').forEach(input => {
     input.addEventListener('change', async () => {
-      const ev = projectCache[currentProject].evidence.find(e => e.id === parseInt(input.dataset.evid));
+      const ev = projectCache[currentProject].evidence.find(e => e.id === input.dataset.evid);
       if (ev) { ev[input.dataset.field] = input.value; await saveProject(currentProject, projectCache[currentProject]); }
     });
   });
@@ -865,7 +912,7 @@ function wireAdminEvidence() {
   document.querySelectorAll('.ev-del-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta evidencia?')) return;
-      projectCache[currentProject].evidence = projectCache[currentProject].evidence.filter(e => e.id !== parseInt(btn.dataset.evid));
+      projectCache[currentProject].evidence = projectCache[currentProject].evidence.filter(e => e.id !== btn.dataset.evid);
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
@@ -886,7 +933,7 @@ function wireAdminEvidence() {
         document.getElementById('evIconCustom').value = '';
       });
     });
-    document.getElementById('evModal').classList.add('open');
+    openModal('evModal', 'evTitle');
   });
 }
 
@@ -898,7 +945,7 @@ async function saveEvidence() {
   const icon   = custom || pickedIcon || '📄';
   if (!title) { alert('El título es obligatorio.'); return; }
 
-  projectCache[currentProject].evidence.push({ id: Date.now(), title, date, icon, note });
+  projectCache[currentProject].evidence.push({ id: genId(), title, date, icon, note });
   await saveProject(currentProject, projectCache[currentProject]);
   closeModal('evModal');
   renderAdminView();
@@ -911,8 +958,8 @@ function buildAdminMeetings(p) {
         <div class="cr-item">
           <div class="cr-head">
             <div style="flex:1">
-              <div class="cr-title">${r.nombre}</div>
-              <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · <a href="mailto:${r.email}" style="color:var(--gold)">${r.email}</a></div>
+              <div class="cr-title">${esc(r.nombre)}</div>
+              <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · <a href="mailto:${esc(r.email)}" style="color:var(--gold)">${esc(r.email)}</a></div>
             </div>
             <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
               ${pillHtml(r.estado)}
@@ -952,7 +999,7 @@ function buildAdminMeetings(p) {
 function wireAdminMeetings() {
   document.querySelectorAll('[data-reid]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const meeting = projectCache[currentProject].reuniones.find(r => r.id === parseInt(btn.dataset.reid));
+      const meeting = projectCache[currentProject].reuniones.find(r => r.id === btn.dataset.reid);
       if (!meeting) return;
       meeting.estado = btn.dataset.action;
       await saveProject(currentProject, projectCache[currentProject]);
@@ -967,12 +1014,13 @@ function wireAdminMeetings() {
   document.getElementById('addMeetingBtn')?.addEventListener('click', async () => {
     const nombre = document.getElementById('rNom').value.trim();
     const email  = document.getElementById('rEmail').value.trim();
-    const dia    = parseInt(document.getElementById('rDia').value);
-    const mes    = parseInt(document.getElementById('rMes').value);
+    const dia    = parseInt(document.getElementById('rDia').value, 10);
+    const mes    = parseInt(document.getElementById('rMes').value, 10);
     const hora   = document.getElementById('rHora').value;
-    if (!nombre || !email || !dia) { alert('Completa nombre, email y día.'); return; }
+    if (!nombre || !email || isNaN(dia)) { alert('Completa nombre, email y día.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Email inválido.'); return; }
 
-    const meeting = { id: Date.now(), dia, mes, anio: 2025, hora, nombre, email, estado: 'Confirmada' };
+    const meeting = { id: genId(), dia, mes, anio: new Date().getFullYear(), hora, nombre, email, estado: 'Confirmada' };
     projectCache[currentProject].reuniones.push(meeting);
     await saveProject(currentProject, projectCache[currentProject]);
 
@@ -987,22 +1035,21 @@ function wireAdminMeetings() {
 
 // ── Admin: Solicitudes ────────────────────────────────
 function buildAdminRequests(p) {
-  // Marcar todas como vistas
+  // Marcar todas como vistas (se persiste en el siguiente saveProject)
   p.changes.forEach(c => c.seen = true);
-  saveProject(currentProject, p);
 
   const items = p.changes.length
     ? p.changes.map(c => `
         <div class="cr-item">
           <div class="cr-head">
             <div style="flex:1">
-              <div class="cr-title">${c.title}</div>
-              <div class="cr-meta">${c.type} · Prioridad: <strong style="color:${c.priority==='Urgente'?'var(--red)':c.priority==='Alta'?'var(--yellow)':'var(--soft)'}">${c.priority}</strong> · ${c.date}</div>
-              <div class="cr-desc" style="margin-top:4px">${c.desc}</div>
+              <div class="cr-title">${esc(c.title)}</div>
+              <div class="cr-meta">${esc(c.type)} · Prioridad: <strong style="color:${c.priority==='Urgente'?'var(--red)':c.priority==='Alta'?'var(--yellow)':'var(--soft)'}">${esc(c.priority)}</strong> · ${esc(c.date)}</div>
+              <div class="cr-desc" style="margin-top:4px">${esc(c.desc)}</div>
             </div>
             ${pillHtml(c.status)}
           </div>
-          ${c.reply ? `<div class="cr-reply">💬 <strong>Tu respuesta:</strong> ${c.reply}</div>` : ''}
+          ${c.reply ? `<div class="cr-reply">💬 <strong>Tu respuesta:</strong> ${esc(c.reply)}</div>` : ''}
           <div style="display:flex;gap:8px;margin-top:10px">
             <button class="btn-sm reply-btn" data-cid="${c.id}" data-title="${esc(c.title)}" data-status="${c.status}">Responder / cambiar estado</button>
             <button class="btn-danger del-cr-btn" data-cid="${c.id}">Eliminar</button>
@@ -1021,18 +1068,18 @@ function buildAdminRequests(p) {
 function wireAdminRequests() {
   document.querySelectorAll('.reply-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      replyingId = parseInt(btn.dataset.cid);
+      replyingId = btn.dataset.cid;
       document.getElementById('replyModalSub').textContent = `"${btn.dataset.title}"`;
       document.getElementById('replyStatus').value         = btn.dataset.status;
       document.getElementById('replyText').value           = '';
-      document.getElementById('replyModal').classList.add('open');
+      openModal('replyModal', 'replyText');
     });
   });
 
   document.querySelectorAll('.del-cr-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta solicitud?')) return;
-      projectCache[currentProject].changes = projectCache[currentProject].changes.filter(c => c.id !== parseInt(btn.dataset.cid));
+      projectCache[currentProject].changes = projectCache[currentProject].changes.filter(c => c.id !== btn.dataset.cid);
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
@@ -1058,7 +1105,8 @@ function buildCalendar() {
   const daysInMonth   = new Date(y, m + 1, 0).getDate();
   const today         = new Date();
   const meetings      = projectCache[currentProject]?.reuniones || [];
-  const bookedDays    = new Set(meetings.filter(r => r.mes === m && r.anio === y).map(r => r.dia));
+  const activeMeetings = meetings.filter(r => r.estado !== 'Cancelada');
+  const bookedDays    = new Set(activeMeetings.filter(r => r.mes === m && r.anio === y).map(r => r.dia));
 
   let dayCells = '';
   for (let i = 0; i < firstWeekday; i++) dayCells += '<div></div>';
@@ -1075,7 +1123,7 @@ function buildCalendar() {
     dayCells += `<div class="${cls}" data-day="${d}">${d}</div>`;
   }
 
-  const bookedSlotIdxs = selDay ? meetings.filter(r => r.mes === m && r.anio === y && r.dia === selDay).map(r => SLOTS.indexOf(r.hora)) : [];
+  const bookedSlotIdxs = selDay ? activeMeetings.filter(r => r.mes === m && r.anio === y && r.dia === selDay).map(r => SLOTS.indexOf(r.hora)).filter(i => i !== -1) : [];
   let slotsHtml = '';
   if (selDay) {
     const slotButtons = SLOTS.map((sl, i) => {
@@ -1098,7 +1146,7 @@ function buildCalendar() {
       ${confirmedMeetings.map(r => `
         <div style="display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--gbg);border:1px solid rgba(74,222,128,.1);border-radius:6px;margin-bottom:6px;font-size:12px">
           <span style="color:var(--green)">✅</span>
-          <span style="flex:1">${r.nombre}</span>
+          <span style="flex:1">${esc(r.nombre)}</span>
           <span style="color:var(--muted);font-family:'DM Mono',monospace">${r.dia}/${r.mes + 1} · ${r.hora}</span>
         </div>`).join('')}
     </div>` : '';
@@ -1144,7 +1192,7 @@ function wireCalendar() {
 
   document.querySelectorAll('.cal-d.click').forEach(el => {
     el.addEventListener('click', () => {
-      calendar.selDay  = parseInt(el.dataset.day);
+      calendar.selDay  = parseInt(el.dataset.day, 10);
       calendar.selSlot = null;
       rerender();
     });
@@ -1152,7 +1200,7 @@ function wireCalendar() {
 
   document.querySelectorAll('.slot:not(.sbooked)').forEach(el => {
     el.addEventListener('click', () => {
-      calendar.selSlot = parseInt(el.dataset.slot);
+      calendar.selSlot = parseInt(el.dataset.slot, 10);
       rerender();
     });
   });
@@ -1160,7 +1208,7 @@ function wireCalendar() {
   document.getElementById('reqSlotBtn')?.addEventListener('click', () => {
     pendingBooking = { ...calendar };
     document.getElementById('bookModalSub').textContent = `${calendar.selDay} de ${MONTHS[calendar.m]} ${calendar.y} · ${SLOTS[calendar.selSlot]} — Matias confirmará a la brevedad.`;
-    document.getElementById('bookModal').classList.add('open');
+    openModal('bookModal', 'bookName');
   });
 }
 
@@ -1168,12 +1216,12 @@ async function finalizeBooking() {
   const nombre = document.getElementById('bookName').value.trim();
   const email  = document.getElementById('bookEmail').value.trim();
   if (!nombre || !email)          { alert('Completa tu nombre y email.'); return; }
-  if (!email.includes('@'))       { alert('Email inválido.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Email inválido.'); return; }
 
   const { y, m, selDay, selSlot } = pendingBooking;
   projectCache[currentProject] = await loadProject(currentProject);
   projectCache[currentProject].reuniones.push({
-    id: Date.now(), dia: selDay, mes: m, anio: y,
+    id: genId(), dia: selDay, mes: m, anio: y,
     hora: SLOTS[selSlot], nombre, email, estado: 'Solicitada',
   });
   await saveProject(currentProject, projectCache[currentProject]);
@@ -1192,8 +1240,24 @@ async function finalizeBooking() {
 // ═══════════════════════════════════════════════════════
 function show(id, display)  { document.getElementById(id).style.display = display || 'block'; }
 function hide(id)           { document.getElementById(id).style.display = 'none'; }
-function closeModal(id)     { document.getElementById(id).classList.remove('open'); }
+let lastFocusedEl = null;
+function openModal(id, focusId) {
+  lastFocusedEl = document.activeElement;
+  const modal = document.getElementById(id);
+  modal.classList.add('open');
+  if (focusId) setTimeout(() => document.getElementById(focusId)?.focus(), 100);
+}
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  modal.classList.remove('open');
+  if (lastFocusedEl) { setTimeout(() => lastFocusedEl.focus(), 100); lastFocusedEl = null; }
+}
 function setLoading(active) { document.getElementById('loadingOverlay').style.display = active ? 'flex' : 'none'; }
+function setSaving(active) {
+  const btns = document.querySelectorAll('.btn-gold, .btn-confirm, .btn-sm, .btn-danger');
+  btns.forEach(b => b.disabled = active);
+  document.body.style.cursor = active ? 'wait' : '';
+}
 
 function animateProgressBar(id, pct) {
   const el = document.getElementById(id);
@@ -1207,7 +1271,7 @@ function pillHtml(status) {
     'Rechazado':  'pill-red',   'Confirmada':  'pill-green', 'Solicitada': 'pill-yellow',
     'Cancelada':  'pill-red',
   };
-  return `<span class="pill ${map[status] || 'pill-gray'}">${status}</span>`;
+  return `<span class="pill ${map[status] || 'pill-gray'}">${esc(status)}</span>`;
 }
 
 function taskRowHtml(task, status) {
@@ -1216,14 +1280,14 @@ function taskRowHtml(task, status) {
   return `
     <div class="trow">
       <div class="tdot" style="background:${colors[status]}"></div>
-      <div class="tname">${task.name}</div>
-      <div class="tdate">${task.date}</div>
+      <div class="tname">${esc(task.name)}</div>
+      <div class="tdate">${esc(task.date)}</div>
       ${pillHtml(labels[status])}
     </div>`;
 }
 
 function esc(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/`/g,'&#96;');
 }
 
 function showConfigBanner() {

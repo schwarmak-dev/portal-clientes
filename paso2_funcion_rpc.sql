@@ -10,7 +10,7 @@
 -- de Supabase → el hash NUNCA sale de la base de datos.
 -- ═══════════════════════════════════════════════════════
 
-CREATE OR REPLACE FUNCTION verify_login(p_username TEXT, p_password TEXT)
+CREATE OR REPLACE FUNCTION verify_login(p_username TEXT, p_password TEXT, p_agent TEXT DEFAULT '')
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER  -- Se ejecuta con permisos del dueño, no del llamador

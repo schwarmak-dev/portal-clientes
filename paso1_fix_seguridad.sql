@@ -68,15 +68,15 @@ CREATE POLICY "public_read_projects"
   ON projects FOR SELECT
   USING (true);
 
--- Escritura en projects: solo permitir si hay un header especial
--- (el app lo incluye al guardar — ver index.html actualizado)
--- Por ahora usamos service_role para escritura desde el backend.
--- ALTERNATIVA SIMPLE: usar una función RPC que verifica sesión.
+-- Escritura en projects: SOLO mediante service_role (backend seguro).
+-- El frontend NUNCA debe poder escribir directamente.
+-- Para habilitar escritura segura desde el frontend, usa una función RPC
+-- como verify_login que ejecuta con SECURITY DEFINER.
+-- Con esto, cualquier intento de INSERT/UPDATE/DELETE via anon key será rechazado.
 
-CREATE POLICY "anon_write_projects"
-  ON projects FOR ALL
-  USING (true)
-  WITH CHECK (true);
+-- NOTA: Si necesitas que el admin guarde desde el frontend, crea una
+-- función RPC tipo save_project(slug TEXT, data JSONB) con SECURITY DEFINER
+-- y otorga permisos solo al rol autenticado.
 
 -- Lectura de users: solo lectura (el app necesita autenticar)
 CREATE POLICY "public_read_users"

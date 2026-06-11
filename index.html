@@ -11,6 +11,8 @@
 </head>
 <body>
 
+<a href="#loginShell" class="skip-link" style="position:absolute;top:-40px;left:10px;background:var(--gold);color:#09090B;padding:8px 16px;border-radius:0 0 6px 6px;z-index:999;font-weight:600;font-size:13px;transition:top .2s">Saltar al contenido</a>
+
 <div class="texture"></div>
 
 <!-- ── Loading ─────────────────────────────────────── -->
@@ -34,11 +36,11 @@
     <div style="font-size:13px;color:var(--soft);margin-bottom:28px;line-height:1.6">Accede con tus credenciales para ver el estado de tu proyecto.</div>
 
     <div class="frow">
-      <label class="flabel">Usuario</label>
+      <label class="flabel" for="lu">Usuario</label>
       <input class="finput" id="lu" placeholder="tu_usuario" autocomplete="username">
     </div>
     <div class="frow">
-      <label class="flabel">Contraseña</label>
+      <label class="flabel" for="lp">Contraseña</label>
       <input class="finput" type="password" id="lp" placeholder="••••••••" autocomplete="current-password">
     </div>
 
@@ -97,7 +99,7 @@
       </select>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <div class="hide-mobile" style="font-size:11px;color:var(--blue);background:var(--bbg);border:1px solid rgba(96,165,250,.15);border-radius:100px;padding:3px 10px">⚙ Matias</div>
+      <div id="aAdminName" class="hide-mobile" style="font-size:11px;color:var(--blue);background:var(--bbg);border:1px solid rgba(96,165,250,.15);border-radius:100px;padding:3px 10px">⚙ —</div>
       <button class="btn-ghost" onclick="logout()" style="padding:5px 10px;font-size:12px">✕</button>
     </div>
   </div>
@@ -117,12 +119,12 @@
 <!-- ── Modals ────────────────────────────────────────── -->
 
 <!-- Reserva de reunión (cliente) -->
-<div class="modal-overlay" id="bookModal">
+<div class="modal-overlay" id="bookModal" role="dialog" aria-modal="true" aria-labelledby="bookModalTitle">
   <div class="modal-box">
-    <div class="modal-title">Solicitar reunión</div>
+    <div class="modal-title" id="bookModalTitle">Solicitar reunión</div>
     <div class="modal-sub" id="bookModalSub"></div>
-    <div class="frow"><label class="flabel">Tu nombre</label><input class="finput" id="bookName" placeholder="Nombre Apellido"></div>
-    <div class="frow"><label class="flabel">Email</label><input class="finput" type="email" id="bookEmail" placeholder="tu@email.com"></div>
+    <div class="frow"><label class="flabel" for="bookName">Tu nombre</label><input class="finput" id="bookName" placeholder="Nombre Apellido"></div>
+    <div class="frow"><label class="flabel" for="bookEmail">Email</label><input class="finput" type="email" id="bookEmail" placeholder="tu@email.com"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('bookModal')">Cancelar</button>
       <button class="btn-confirm" onclick="finalizeBooking()">Enviar solicitud →</button>
@@ -131,12 +133,12 @@
 </div>
 
 <!-- Responder solicitud (admin) -->
-<div class="modal-overlay" id="replyModal">
+<div class="modal-overlay" id="replyModal" role="dialog" aria-modal="true" aria-labelledby="replyModalTitle">
   <div class="modal-box">
-    <div class="modal-title">Responder solicitud</div>
+    <div class="modal-title" id="replyModalTitle">Responder solicitud</div>
     <div class="modal-sub" id="replyModalSub"></div>
     <div class="frow">
-      <label class="flabel">Nuevo estado</label>
+      <label class="flabel" for="replyStatus">Nuevo estado</label>
       <select class="finput" id="replyStatus">
         <option value="Pendiente">Pendiente</option>
         <option value="En revisión">En revisión</option>
@@ -145,7 +147,7 @@
         <option value="Rechazado">Rechazado</option>
       </select>
     </div>
-    <div class="frow"><label class="flabel">Respuesta</label><textarea class="finput" id="replyText" rows="3" placeholder="Escribe tu respuesta..."></textarea></div>
+    <div class="frow"><label class="flabel" for="replyText">Respuesta</label><textarea class="finput" id="replyText" rows="3" placeholder="Escribe tu respuesta..."></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('replyModal')">Cancelar</button>
       <button class="btn-confirm" onclick="submitReply()">Guardar</button>
@@ -154,14 +156,14 @@
 </div>
 
 <!-- Agregar evidencia (admin) -->
-<div class="modal-overlay" id="evModal">
+<div class="modal-overlay" id="evModal" role="dialog" aria-modal="true" aria-labelledby="evModalTitle">
   <div class="modal-box">
-    <div class="modal-title">Agregar evidencia</div>
-    <div class="frow"><label class="flabel">Título</label><input class="finput" id="evTitle" placeholder="Ej: Homepage v3 final"></div>
-    <div class="frow"><label class="flabel">Fecha</label><input class="finput" id="evDate" placeholder="Ej: 24 May 2025"></div>
-    <div class="frow"><label class="flabel">Nota para el cliente</label><input class="finput" id="evNote" placeholder="Opcional"></div>
+    <div class="modal-title" id="evModalTitle">Agregar evidencia</div>
+    <div class="frow"><label class="flabel" for="evTitle">Título</label><input class="finput" id="evTitle" placeholder="Ej: Homepage v3 final"></div>
+    <div class="frow"><label class="flabel" for="evDate">Fecha</label><input class="finput" id="evDate" placeholder="Ej: 24 May 2025"></div>
+    <div class="frow"><label class="flabel" for="evNote">Nota para el cliente</label><input class="finput" id="evNote" placeholder="Opcional"></div>
     <div class="frow">
-      <label class="flabel">Ícono</label>
+      <label class="flabel" for="evIconCustom">Ícono</label>
       <div class="icon-grid" id="iconGrid"></div>
       <input class="finput" id="evIconCustom" placeholder="O escribe emoji personalizado 🔥" style="margin-top:8px;font-size:18px;text-align:center">
     </div>
@@ -173,11 +175,11 @@
 </div>
 
 <!-- Editar tarea (admin roadmap) -->
-<div class="modal-overlay" id="taskModal">
+<div class="modal-overlay" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
   <div class="modal-box">
-    <div class="modal-title">Editar tarea</div>
-    <div class="frow"><label class="flabel">Nombre</label><input class="finput" id="taskEditName" placeholder="Nombre de la tarea"></div>
-    <div class="frow"><label class="flabel">Fecha / Estado</label><input class="finput" id="taskEditDate" placeholder="Ej: Jun 2025"></div>
+    <div class="modal-title" id="taskModalTitle">Editar tarea</div>
+    <div class="frow"><label class="flabel" for="taskEditName">Nombre</label><input class="finput" id="taskEditName" placeholder="Nombre de la tarea"></div>
+    <div class="frow"><label class="flabel" for="taskEditDate">Fecha / Estado</label><input class="finput" id="taskEditDate" placeholder="Ej: Jun 2025"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('taskModal')">Cancelar</button>
       <button class="btn-confirm" onclick="saveTaskEdit()">Guardar</button>
