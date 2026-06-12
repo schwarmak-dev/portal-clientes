@@ -82,8 +82,11 @@ open index.html  # ¡Listo! Abre en tu navegador
 **Credenciales demo:**
 | Rol | Usuario | Contraseña |
 |-----|---------|------------|
-| 👑 Admin | `schwaradmin` | `admin123` |
-| 👤 Cliente | `acme` | `acme123` |
+| 👑 Admin | `admin` | `admin.123` |
+| 👤 Cliente | `acme` | `acme.123` |
+| 👤 Cliente | `nova` | `nova.123` |
+| 👤 Cliente | `sebastian` | `sebastian.123` |
+| 👤 Cliente | `duoc` | `duoc.123` |
 
 ### Opción 2: Con Supabase (producción)
 
@@ -145,14 +148,17 @@ portal/
 
 ```
 ❌ ANTES:  btoa(password) = base64 = cualquiera lo lee
-✅ AHORA:  bcrypt + RPC = hash nunca sale de la BD
+✅ AHORA:  SHA-256 (demo) / bcrypt + RPC (producción) = hash nunca se expone
 ```
 
-- ✅ Bcrypt con salt rounds = 12
-- ✅ Verificación server-side via Supabase RPC
+- ✅ Hash unidireccional (SHA-256 en demo, bcrypt en producción)
+- ✅ Verificación server-side via Supabase RPC (producción)
 - ✅ Row Level Security (RLS) habilitado
 - ✅ Auto-logout por inactividad (30 min)
-- ✅ Tokens de sesión seguros
+- ✅ Rate limiting en login (5 intentos → 30s lockout)
+- ✅ Sanitización de URLs (previene XSS via javascript:)
+- ✅ Sesiones en sessionStorage (no persisten entre tabs)
+- ✅ Cuota de localStorage protegida (4.5MB max)
 
 > 📖 Ver guía completa: [leeme_pasos.md](leeme_pasos.md)
 
@@ -204,13 +210,28 @@ INSERT INTO projects (slug, data) VALUES (
 
 ### Security Audit
 
-🛡️ **Camilo Martinez** — Ciberseguridad y mejores prácticas de autenticación
+🛡️ **Camilo Martinez** — Auditoría de seguridad y corrección de 33 vulnerabilidades
 
 ---
 
 ## 📜 License
 
-MIT © 2025
+MIT © 2025 Schwarmak
+
+---
+
+## 🐛 Security Audit
+
+Este proyecto fue auditado y se corrigieron **33 vulnerabilidades**:
+
+| Severidad | Cantidad | Ejemplos |
+|-----------|----------|----------|
+| 🔴 Crítica | 5 | Credenciales expuestas, SQL sin auth |
+| 🟠 Alta | 8 | XSS, memory leaks, race conditions |
+|  Media | 12 | Code quality, RLS policies |
+| 🟢 Baja | 8 | Accesibilidad, performance |
+
+**Auditado por:** Camilo Martinez — Ciberseguridad
 
 ---
 
