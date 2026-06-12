@@ -27,7 +27,7 @@ const PRESET_ICONS = ['🖥','📱','🎨','⚙️','⚡','🚀','📊','📋','
 // ─── Datos demo (fallback cuando Supabase no está configurado) ───────────────
 const FALLBACK_PROJECTS = {
   acme: {
-    name: 'E-commerce Redesign', client: 'ACME Corp', progress: 78,
+    name: 'Rediseño Web Completo', client: 'ACME Corp', progress: 78,
     phases: ['Discovery','UX/UI','Desarrollo','QA','Lanzamiento'], phaseDone: 3,
     done: [
       { id:1, name:'Auditoría UX inicial',          date:'12 Mar 2025' },
@@ -53,7 +53,7 @@ const FALLBACK_PROJECTS = {
       { id:1, title:'Filtro por precio', type:'Nueva funcionalidad', priority:'Alta', status:'En revisión', date:'10 May 2025', desc:'Slider de rango de precios en la sidebar.', reply:'', seen:true },
     ],
     reuniones: [
-      { id:1, dia:20, mes:4, anio:2025, hora:'10:00', nombre:'Carlos Méndez', email:'carlos@acme.com', estado:'Confirmada', duration:'1 hora', timezone:'America/Santiago (GMT-3)', reminder:'Ambos', recurrence:'Sin repetir', videoLink:'https://meet.google.com/abc-defg-hij', agenda:'Revisión de avances del e-commerce y aprobación de mockups finales.', notes:'Se aprobó el diseño final. Pendiente: integrar pasarela de pagos.' },
+      { id:1, dia:20, mes:4, anio:2025, hora:'10:00', nombre:'Carlos Méndez', email:'carlos@acme.com', estado:'Confirmada', duration:'1 hora', timezone:'America/Santiago (GMT-3)', reminder:'Ambos', recurrence:'Sin repetir', videoLink:'https://meet.google.com/abc-defg-hij', agenda:'Revisión de avances del proyecto y aprobación de mockups finales.', notes:'Se aprobó el diseño final. Pendiente: integrar pasarela de pagos.' },
     ],
   },
   nova: {
@@ -75,34 +75,18 @@ const FALLBACK_PROJECTS = {
     changes:  [{ id:1, title:'Login con Google', type:'Nueva funcionalidad', priority:'Media', status:'Pendiente', date:'16 May 2025', desc:'Auth con Google además del email.', reply:'', seen:false }],
     reuniones: [],
   },
-  duoc: {
-    name:'Proyecto Duocuc', client:'Duocuc', progress:0,
-    phases:['Inicio','Desarrollo','Revisión','Entrega'], phaseDone:0,
-    done:[], wip:[], pending:[{ id:1, name:'Primera reunión de kick-off', date:'Por definir' }],
-    evidence:[], changes:[], reuniones:[],
-  },
-  sebastian: {
-    name:'Proyecto de Sebastian', client:'Sebastian Gonzalez', progress:0,
-    phases:['Inicio','Desarrollo','Revisión','Entrega'], phaseDone:0,
-    done:[], wip:[], pending:[{ id:1, name:'Primera reunión de kick-off', date:'Por definir' }],
-    evidence:[], changes:[], reuniones:[],
-  },
 };
 
 const LOCAL_USERS = {
-  admin:      { name: 'Matias',       project: 'acme', role: 'admin'  },
-  acme:       { name: 'Equipo ACME',  project: 'acme', role: 'client' },
-  nova:       { name: 'Nova Inc',     project: 'nova', role: 'client' },
-  sebastian:  { name: 'Sebastian G.', project: 'sebastian', role: 'client' },
-  duoc:       { name: 'Duoc UC',      project: 'duoc', role: 'client' },
+  admin:      { name: 'Administrador', project: 'acme', role: 'admin'  },
+  acme:       { name: 'Equipo ACME',   project: 'acme', role: 'client' },
+  nova:       { name: 'Nova Inc',      project: 'nova', role: 'client' },
 };
 
 const DEMO_HASHES = {
   admin:     '48675a52a0b45011e04f4ca6f2cabf792153104308c3413e0460c394bffdac47',
   acme:      'cf06c892449aa32a3ef5fa5811df2d69359567bc51c6128636fe67a19da78054',
   nova:      'ecef81c85493a957f0cfaa461d9d4beef1b73960122d37087a2d7883dce3586d',
-  sebastian: 'ddf47af7ada17a3ec957a4aeb37116f646b053e0d17ee676d8495bff7687db30',
-  duoc:      '7f2a5d56203fca466abaa324a6c823179ef378094282ec5073c63e899ebf7fa8',
 };
 
 async function sha256(str) {
@@ -1505,7 +1489,7 @@ function exportMeetingIcs(meeting) {
     `SUMMARY:${meeting.nombre} - Reunión`,
     `DESCRIPTION:${(meeting.agenda || '').replace(/\n/g, '\\n')}`,
     meeting.videoLink ? `URL:${meeting.videoLink}` : '',
-    `ORGANIZER;CN=Matias:mailto:schwarmak.dev@gmail.com`,
+    `ORGANIZER;CN=Administrador:mailto:schwarmak.dev@gmail.com`,
     `ATTENDEE;CN=${meeting.nombre}:mailto:${meeting.email}`,
     'END:VEVENT',
     'END:VCALENDAR'
@@ -1664,7 +1648,7 @@ function buildCalendar() {
           <button class="btn-sm" id="calNext">›</button>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Los días con punto ya tienen reunión. Al solicitar, Matias debe confirmar.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Los días con punto ya tienen reunión. Al solicitar, el administrador confirmará.</div>
       <div class="cal-grid-wrap">
         ${DAYS.map(d => `<div class="cal-dh">${d}</div>`).join('')}
         ${dayCells}
@@ -1711,7 +1695,7 @@ function wireCalendar() {
   document.getElementById('reqSlotBtn')?.addEventListener('click', () => {
     pendingBooking = { ...calendar };
     const dur = document.getElementById('bookDur')?.value || '1 hora';
-    document.getElementById('bookModalSub').textContent = `${calendar.selDay} de ${MONTHS[calendar.m]} ${calendar.y} · ${SLOTS[calendar.selSlot]} · ${dur} — Matias confirmará a la brevedad.`;
+    document.getElementById('bookModalSub').textContent = `${calendar.selDay} de ${MONTHS[calendar.m]} ${calendar.y} · ${SLOTS[calendar.selSlot]} · ${dur} — El administrador confirmará a la brevedad.`;
     openModal('bookModal', 'bookName');
   });
 }
@@ -1736,7 +1720,7 @@ async function finalizeBooking() {
   calendar.selSlot = null;
   closeModal('bookModal');
   ['bookName', 'bookEmail', 'bookAgenda'].forEach(id => document.getElementById(id).value = '');
-  showNotif('Solicitud enviada 📅', `${selDay} de ${MONTHS[m]} a las ${SLOTS[selSlot]}. Matias confirmará pronto.`);
+  showNotif('Solicitud enviada 📅', `${selDay} de ${MONTHS[m]} a las ${SLOTS[selSlot]}. El administrador confirmará pronto.`);
 
   document.getElementById('cMain').innerHTML = buildCalendar();
   wireCalendar();

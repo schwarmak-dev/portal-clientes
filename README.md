@@ -85,8 +85,6 @@ open index.html  # ¡Listo! Abre en tu navegador
 | 👑 Admin | `admin` | `admin.123` |
 | 👤 Cliente | `acme` | `acme.123` |
 | 👤 Cliente | `nova` | `nova.123` |
-| 👤 Cliente | `sebastian` | `sebastian.123` |
-| 👤 Cliente | `duoc` | `duoc.123` |
 
 ### Opción 2: Con Supabase (producción)
 
