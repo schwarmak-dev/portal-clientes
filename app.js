@@ -98,14 +98,18 @@ const LOCAL_USERS = {
 };
 
 const DEMO_HASHES = {
-  admin:     '509078a8509078a8509078a8509078a8509078a8509078a8509078a8509078a8',
-  acme:      '483361be483361be483361be483361be483361be483361be483361be483361be',
-  nova:      '038fb702038fb702038fb702038fb702038fb702038fb702038fb702038fb702',
-  sebastian: '6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee',
-  duoc:      '2d6e33622d6e33622d6e33622d6e33622d6e33622d6e33622d6e33622d6e3362',
+  admin:     '48675a52a0b45011e04f4ca6f2cabf792153104308c3413e0460c394bffdac47',
+  acme:      'cf06c892449aa32a3ef5fa5811df2d69359567bc51c6128636fe67a19da78054',
+  nova:      'ecef81c85493a957f0cfaa461d9d4beef1b73960122d37087a2d7883dce3586d',
+  sebastian: 'ddf47af7ada17a3ec957a4aeb37116f646b053e0d17ee676d8495bff7687db30',
+  duoc:      '7f2a5d56203fca466abaa324a6c823179ef378094282ec5073c63e899ebf7fa8',
 };
 
 async function sha256(str) {
+  if (crypto.subtle) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+  }
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const chr = str.charCodeAt(i);
