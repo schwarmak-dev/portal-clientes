@@ -23,7 +23,7 @@
 
 <!-- ── Notificación flotante ───────────────────────── -->
 <div class="notif-banner" id="notifBanner">
-  <button class="notif-close" onclick="closeNotif()">✕</button>
+  <button class="notif-close" onclick="closeNotif()" aria-label="Cerrar notificación">✕</button>
   <div id="notifTitle" style="font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:4px;color:var(--gold)">Aviso</div>
   <div id="notifBody"  style="font-size:12px;color:var(--soft);line-height:1.5"></div>
 </div>
@@ -37,22 +37,22 @@
 
     <div class="frow">
       <label class="flabel" for="lu">Usuario</label>
-      <input class="finput" id="lu" placeholder="tu_usuario" autocomplete="username">
+      <input class="finput" id="lu" placeholder="tu_usuario" autocomplete="username" maxlength="50">
     </div>
     <div class="frow">
       <label class="flabel" for="lp">Contraseña</label>
-      <input class="finput" type="password" id="lp" placeholder="••••••••" autocomplete="current-password">
+      <input class="finput" type="password" id="lp" placeholder="••••••••" autocomplete="current-password" maxlength="128">
     </div>
 
     <button class="btn-gold" style="width:100%;margin-top:4px" id="loginBtn">Ingresar →</button>
     <div id="loginErr" class="alert-err" style="display:none">Usuario o contraseña incorrectos.</div>
 
     <div style="text-align:center;margin-top:20px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
-      <a href="mailto:scharmak.dev@gmail.com" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
+      <a href="mailto:schwarmak.dev@gmail.com" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         Contáctame
       </a>
-      <a href="https://github.com/schwarmak-dev" target="_blank" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
+      <a href="https://github.com/schwarmak-dev" target="_blank" rel="noopener noreferrer" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
         GitHub
       </a>
@@ -68,11 +68,11 @@
       <div id="cTopProj" style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">—</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:100px;padding:3px 10px 3px 3px">
+      <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:100px;padding:3px 10px 3px 3px;cursor:pointer" onclick="openModal('themeModal')">
         <div id="cAvatar" style="width:22px;height:22px;border-radius:50%;background:var(--gg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gold)">?</div>
         <span id="cName" style="font-size:11px;color:var(--soft);display:none" class="hide-mobile">—</span>
       </div>
-      <button class="btn-ghost" onclick="logout()" style="padding:5px 10px;font-size:12px">✕</button>
+      <button class="btn-ghost" onclick="logout()" aria-label="Cerrar sesión" style="padding:5px 10px;font-size:12px">✕</button>
     </div>
   </div>
 
@@ -85,22 +85,22 @@
   </div>
 
   <div class="main fadein" id="cMain"></div>
-  <div class="footer">¿Dudas o problemas con tu acceso? Contáctame en: <a href="mailto:scharmak.dev@gmail.com">scharmak.dev@gmail.com</a></div>
+  <div class="footer">¿Dudas o problemas con tu acceso? Contáctame en: <a href="mailto:schwarmak.dev@gmail.com">schwarmak.dev@gmail.com</a></div>
 </div>
 
 <!-- ── Shell del admin ───────────────────────────────── -->
 <div id="adminShell" style="display:none;flex-direction:column;min-height:100vh">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:8px;min-width:0">
-      <div class="login-mark" style="width:28px;height:28px;font-size:13px;margin-bottom:0;background:var(--bbg);border-color:rgba(96,165,250,.2);color:var(--blue);flex-shrink:0">A</div>
+      <div class="login-mark" style="width:28px;height:28px;font-size:13px;margin-bottom:0;background:var(--gg);border-color:rgba(201,169,110,.22);color:var(--gold);flex-shrink:0">A</div>
       <select id="aProjSel" onchange="adminSwitchProj(this.value)"
-        style="background:var(--bg3);border:1px solid rgba(96,165,250,.2);border-radius:6px;padding:4px 10px;color:var(--blue);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;appearance:none;max-width:180px">
+        style="background:var(--bg3);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;color:var(--gold);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;appearance:none;max-width:180px">
         <!-- Opciones cargadas dinámicamente desde Supabase por populateProjectSelect() -->
       </select>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <div id="aAdminName" class="hide-mobile" style="font-size:11px;color:var(--blue);background:var(--bbg);border:1px solid rgba(96,165,250,.15);border-radius:100px;padding:3px 10px">⚙ —</div>
-      <button class="btn-ghost" onclick="logout()" style="padding:5px 10px;font-size:12px">✕</button>
+      <div id="aAdminName" class="hide-mobile" style="font-size:11px;color:var(--gold);background:var(--gg);border:1px solid rgba(201,169,110,.15);border-radius:100px;padding:3px 10px;cursor:pointer" onclick="openModal('themeModal')">⚙ —</div>
+      <button class="btn-ghost" onclick="logout()" aria-label="Cerrar sesión" style="padding:5px 10px;font-size:12px">✕</button>
     </div>
   </div>
 
@@ -113,7 +113,7 @@
   </div>
 
   <div class="main fadein" id="aMain"></div>
-  <div class="footer">Panel de administración · <a href="mailto:scharmak.dev@gmail.com">scharmak.dev@gmail.com</a></div>
+  <div class="footer">Panel de administración · <a href="mailto:schwarmak.dev@gmail.com">schwarmak.dev@gmail.com</a></div>
 </div>
 
 <!-- ── Modals ────────────────────────────────────────── -->
@@ -123,8 +123,10 @@
   <div class="modal-box">
     <div class="modal-title" id="bookModalTitle">Solicitar reunión</div>
     <div class="modal-sub" id="bookModalSub"></div>
-    <div class="frow"><label class="flabel" for="bookName">Tu nombre</label><input class="finput" id="bookName" placeholder="Nombre Apellido"></div>
-    <div class="frow"><label class="flabel" for="bookEmail">Email</label><input class="finput" type="email" id="bookEmail" placeholder="tu@email.com"></div>
+    <div class="frow"><label class="flabel" for="bookName">Tu nombre</label><input class="finput" id="bookName" placeholder="Nombre Apellido" maxlength="100"></div>
+    <div class="frow"><label class="flabel" for="bookEmail">Email</label><input class="finput" type="email" id="bookEmail" placeholder="tu@email.com" maxlength="200"></div>
+    <div class="frow"><label class="flabel" for="bookDur">Duración</label><select class="finput" id="bookDur"><option>30 min</option><option>1 hora</option><option>1.5 horas</option><option>2 horas</option></select></div>
+    <div class="frow"><label class="flabel" for="bookAgenda">Agenda / Temas</label><textarea class="finput" id="bookAgenda" rows="2" placeholder="¿De qué quieres hablar?" maxlength="2000"></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('bookModal')">Cancelar</button>
       <button class="btn-confirm" onclick="finalizeBooking()">Enviar solicitud →</button>
@@ -147,7 +149,7 @@
         <option value="Rechazado">Rechazado</option>
       </select>
     </div>
-    <div class="frow"><label class="flabel" for="replyText">Respuesta</label><textarea class="finput" id="replyText" rows="3" placeholder="Escribe tu respuesta..."></textarea></div>
+    <div class="frow"><label class="flabel" for="replyText">Respuesta</label><textarea class="finput" id="replyText" rows="3" placeholder="Escribe tu respuesta..." maxlength="2000"></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('replyModal')">Cancelar</button>
       <button class="btn-confirm" onclick="submitReply()">Guardar</button>
@@ -159,13 +161,24 @@
 <div class="modal-overlay" id="evModal" role="dialog" aria-modal="true" aria-labelledby="evModalTitle">
   <div class="modal-box">
     <div class="modal-title" id="evModalTitle">Agregar evidencia</div>
-    <div class="frow"><label class="flabel" for="evTitle">Título</label><input class="finput" id="evTitle" placeholder="Ej: Homepage v3 final"></div>
-    <div class="frow"><label class="flabel" for="evDate">Fecha</label><input class="finput" id="evDate" placeholder="Ej: 24 May 2025"></div>
-    <div class="frow"><label class="flabel" for="evNote">Nota para el cliente</label><input class="finput" id="evNote" placeholder="Opcional"></div>
+    <div class="frow"><label class="flabel" for="evTitle">Título</label>      <input class="finput" id="evTitle" placeholder="Ej: Homepage v3 final" maxlength="200"></div>
+    <div class="frow"><label class="flabel" for="evDate">Fecha</label>      <input class="finput" id="evDate" placeholder="Ej: 24 May 2025" maxlength="50"></div>
+    <div class="frow"><label class="flabel" for="evNote">Nota para el cliente</label>      <input class="finput" id="evNote" placeholder="Opcional" maxlength="500"></div>
     <div class="frow">
-      <label class="flabel" for="evIconCustom">Ícono</label>
+      <label class="flabel">Ícono</label>
       <div class="icon-grid" id="iconGrid"></div>
-      <input class="finput" id="evIconCustom" placeholder="O escribe emoji personalizado 🔥" style="margin-top:8px;font-size:18px;text-align:center">
+    </div>
+    <div class="frow">
+      <label class="flabel">Archivo de evidencia</label>
+      <div class="file-upload-zone" id="evFileZone">
+        <div style="font-size:24px;color:var(--muted)">📎</div>
+        <div style="font-size:12px;color:var(--muted)" id="evFileLabel">Haz clic para subir un archivo</div>
+        <input type="file" id="evFileInput" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.zip,.mp4,.mov">
+      </div>
+      <div id="evFilePreview" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--soft);display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span id="evFileName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px"></span>
+        <button type="button" class="btn-danger" style="padding:3px 8px;font-size:11px" onclick="clearEvFile()">✕</button>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('evModal')">Cancelar</button>
@@ -174,12 +187,30 @@
   </div>
 </div>
 
+<!-- Editar evidencia (admin) -->
+<div class="modal-overlay" id="evEditModal" role="dialog" aria-modal="true" aria-labelledby="evEditModalTitle">
+  <div class="modal-box">
+    <div class="modal-title" id="evEditModalTitle">Editar evidencia</div>
+    <div class="frow"><label class="flabel" for="evEditTitle">Título</label>      <input class="finput" id="evEditTitle" placeholder="Ej: Homepage v3 final" maxlength="200"></div>
+    <div class="frow"><label class="flabel" for="evEditDate">Fecha</label>      <input class="finput" id="evEditDate" placeholder="Ej: 24 May 2025" maxlength="50"></div>
+    <div class="frow"><label class="flabel" for="evEditNote">Nota para el cliente</label>      <input class="finput" id="evEditNote" placeholder="Opcional" maxlength="500"></div>
+    <div class="frow">
+      <label class="flabel">Ícono</label>
+      <div class="icon-grid" id="evEditIconGrid"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('evEditModal')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveEvidenceEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Editar tarea (admin roadmap) -->
 <div class="modal-overlay" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
   <div class="modal-box">
     <div class="modal-title" id="taskModalTitle">Editar tarea</div>
-    <div class="frow"><label class="flabel" for="taskEditName">Nombre</label><input class="finput" id="taskEditName" placeholder="Nombre de la tarea"></div>
-    <div class="frow"><label class="flabel" for="taskEditDate">Fecha / Estado</label><input class="finput" id="taskEditDate" placeholder="Ej: Jun 2025"></div>
+    <div class="frow"><label class="flabel" for="taskEditName">Nombre</label>      <input class="finput" id="taskEditName" placeholder="Nombre de la tarea" maxlength="200"></div>
+    <div class="frow"><label class="flabel" for="taskEditDate">Fecha / Estado</label>      <input class="finput" id="taskEditDate" placeholder="Ej: Jun 2025" maxlength="50"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('taskModal')">Cancelar</button>
       <button class="btn-confirm" onclick="saveTaskEdit()">Guardar</button>
@@ -187,6 +218,38 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<!-- Selector de tema -->
+<div class="modal-overlay" id="themeModal" role="dialog" aria-modal="true" aria-labelledby="themeModalTitle">
+  <div class="modal-box" style="max-width:320px">
+    <div class="modal-title" id="themeModalTitle">Seleccionar tema</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Elige el color de acento del portal.</div>
+    <div class="theme-grid">
+      <div class="theme-opt" data-theme="default" onclick="applyTheme('default')">
+        <div class="theme-swatch" style="background:var(--gold)"></div>
+        <span>Dorado</span>
+      </div>
+      <div class="theme-opt" data-theme="rosado" onclick="applyTheme('rosado')">
+        <div class="theme-swatch" style="background:#F472B6"></div>
+        <span>Rosado</span>
+      </div>
+      <div class="theme-opt" data-theme="verde" onclick="applyTheme('verde')">
+        <div class="theme-swatch" style="background:#34D399"></div>
+        <span>Verde</span>
+      </div>
+      <div class="theme-opt" data-theme="celeste" onclick="applyTheme('celeste')">
+        <div class="theme-swatch" style="background:#38BDF8"></div>
+        <span>Celeste</span>
+      </div>
+
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeModal('themeModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=20260611"></script>
+<noscript><style>#loadingOverlay{display:none!important}#loginShell{display:flex!important}</style></noscript>
+<script>setTimeout(function(){if(document.getElementById('loadingOverlay').style.display!=='none'){document.getElementById('loadingOverlay').style.display='none';document.getElementById('loginShell').style.display='flex'}},4000)</script>
 </body>
 </html>

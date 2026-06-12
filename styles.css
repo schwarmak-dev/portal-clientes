@@ -30,7 +30,7 @@ a { color: inherit; text-decoration: none; }
   --line:  rgba(255,255,255,0.06);
   --line2: rgba(255,255,255,0.10);
 
-  --muted: #5A5A6E;
+  --muted: #6E6E82;
   --soft:  #9090A8;
   --text:  #FAFAF7;
 
@@ -56,6 +56,57 @@ a { color: inherit; text-decoration: none; }
   --rl:  16px;
   --rxl: 22px;
 }
+
+/* ─ Temas ──────────────────────────────────────────── */
+[data-theme="rosado"] {
+  --bg:  #1A0A14;
+  --bg2: #24101C;
+  --bg3: #2E1624;
+  --bg4: #381C2E;
+  --line:  rgba(244,114,182,0.08);
+  --line2: rgba(244,114,182,0.14);
+  --gold:  #F472B6;
+  --gold2: #F9A8D4;
+  --gg:    rgba(244,114,182,0.12);
+  --gbg:   rgba(244,114,182,0.10);
+  --ybg:   rgba(250,204,21,0.10);
+  --graybg: rgba(200,200,220,0.08);
+  --bbg:   rgba(244,114,182,0.10);
+  --rbg:   rgba(248,113,113,0.10);
+}
+[data-theme="verde"] {
+  --bg:  #0A1A12;
+  --bg2: #102418;
+  --bg3: #162E1E;
+  --bg4: #1C3824;
+  --line:  rgba(52,211,153,0.08);
+  --line2: rgba(52,211,153,0.14);
+  --gold:  #34D399;
+  --gold2: #6EE7B7;
+  --gg:    rgba(52,211,153,0.12);
+  --gbg:   rgba(52,211,153,0.10);
+  --ybg:   rgba(250,204,21,0.10);
+  --graybg: rgba(200,200,220,0.08);
+  --bbg:   rgba(52,211,153,0.10);
+  --rbg:   rgba(248,113,113,0.10);
+}
+[data-theme="celeste"] {
+  --bg:  #0A141A;
+  --bg2: #101C24;
+  --bg3: #16242E;
+  --bg4: #1C2E38;
+  --line:  rgba(56,189,248,0.08);
+  --line2: rgba(56,189,248,0.14);
+  --gold:  #38BDF8;
+  --gold2: #7DD3FC;
+  --gg:    rgba(56,189,248,0.12);
+  --gbg:   rgba(56,189,248,0.10);
+  --ybg:   rgba(250,204,21,0.10);
+  --graybg: rgba(200,200,220,0.08);
+  --bbg:   rgba(56,189,248,0.10);
+  --rbg:   rgba(248,113,113,0.10);
+}
+
 
 /* ── Textura de fondo ───────────────────────────────── */
 .texture {
@@ -374,6 +425,38 @@ select.finput option { background: #16161C; }
 }
 .upload-zone:hover { border-color: rgba(201,169,110,.3); background: var(--gg); }
 
+.file-upload-zone {
+  background: var(--bg3);
+  border: 1px dashed var(--line2);
+  border-radius: var(--r);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  cursor: pointer;
+  gap: 6px;
+  transition: border-color .2s, background .2s;
+  text-align: center;
+  padding: 14px;
+}
+.file-upload-zone:hover { border-color: rgba(201,169,110,.3); background: var(--gg); }
+
+.ev-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--gold);
+  background: var(--gg);
+  border: 1px solid rgba(201,169,110,.2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  transition: background .2s;
+  word-break: break-all;
+}
+.ev-file-link:hover { background: rgba(201,169,110,.18); }
+
 /* ── Icono grid (modal evidencias) ─────────────────── */
 .icon-grid {
   display: grid;
@@ -397,6 +480,32 @@ select.finput option { background: #16161C; }
 }
 .icon-opt:hover  { border-color: rgba(201,169,110,.4); background: var(--gg); }
 .icon-opt.picked { border-color: var(--gold); background: var(--gg); }
+
+/* ── Theme picker ──────────────────────────────────── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.theme-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.theme-opt:hover { border-color: var(--line2); background: var(--bg4); }
+.theme-swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--line2);
+}
+.theme-opt span { font-size: 11px; color: var(--soft); }
 
 /* ── Calendario ─────────────────────────────────────── */
 .cal-grid-wrap { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-top: 12px; }
@@ -422,6 +531,72 @@ select.finput option { background: #16161C; }
 .cr-meta        { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .cr-desc        { font-size: 12px; color: var(--soft); }
 .cr-reply       { margin-top: 8px; padding: 8px 11px; background: var(--gg); border: 1px solid rgba(201,169,110,.15); border-radius: 6px; font-size: 12px; color: var(--gold); }
+
+/* ── Meeting items ─────────────────────────────────── */
+.meeting-item { transition: border-color .2s; }
+.meeting-item:hover { border-color: var(--line2); }
+.meeting-agenda {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: var(--bg4);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--soft);
+  line-height: 1.5;
+}
+.meeting-notes {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: rgba(201,169,110,0.06);
+  border: 1px solid rgba(201,169,110,.12);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gold);
+  line-height: 1.5;
+}
+.video-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--blue);
+  background: var(--bbg);
+  border: 1px solid rgba(96,165,250,.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: background .2s;
+}
+.video-link:hover { background: rgba(96,165,250,.15); }
+
+/* ── Filter buttons ────────────────────────────────── */
+.filter-btn {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-size: 12px;
+  color: var(--soft);
+  cursor: pointer;
+  transition: all .2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.filter-btn:hover { border-color: var(--line2); color: var(--text); }
+.filter-btn.active { background: var(--gg); border-color: rgba(201,169,110,.3); color: var(--gold); }
+
+/* ── Admin mini calendar ───────────────────────────── */
+.cal-meet-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 2px;
+}
+.cal-meet-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
 
 /* ── Roadmap drag & drop ────────────────────────────── */
 .rm-col       { background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-height: 120px; transition: border-color .2s; }

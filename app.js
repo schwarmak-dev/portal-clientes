@@ -3,7 +3,8 @@
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL      = 'https://zmqwqbmdyjqpqktclvxv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_gbBvt25g9uwyFD91MTGc6w_rf-MT672';
-const IS_CONFIGURED     = false; // Cambiar a !SUPABASE_URL.includes('TU_PROJECT_ID') cuando tengas Supabase
+const IS_CONFIGURED     = false;
+const DEBUG             = false;
 
 // ═══════════════════════════════════════════════════════
 //  CONSTANTES
@@ -11,6 +12,16 @@ const IS_CONFIGURED     = false; // Cambiar a !SUPABASE_URL.includes('TU_PROJECT
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS   = ['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
 const SLOTS  = ['09:00','10:00','11:00','14:00','15:00','16:00','17:00'];
+const DURATIONS = ['30 min','1 hora','1.5 horas','2 horas'];
+const TIMEZONES = ['America/Santiago (GMT-3)','America/Buenos_Aires (GMT-3)','America/Bogota (GMT-5)','America/Lima (GMT-5)','America/Mexico_City (GMT-6)','America/New_York (GMT-4)','Europe/Madrid (GMT+2)','UTC'];
+const REMINDER_OPTIONS = ['1 hora antes','1 día antes','Ambos','Ninguno'];
+const RECURRENCE_OPTIONS = ['Sin repetir','Semanal','Mensual'];
+const MEETING_TEMPLATES = [
+  { name:'Revisión semanal', duration:'1 hora', agenda:'Revisión de avances y próximos pasos' },
+  { name:'Kick-off', duration:'1.5 horas', agenda:'Presentación del proyecto y definición de alcance' },
+  { name:'Demo de avance', duration:'1 hora', agenda:'Demostración de funcionalidades completadas' },
+  { name:'Feedback de diseño', duration:'30 min', agenda:'Revisión de propuestas de diseño' },
+];
 const PRESET_ICONS = ['🖥','📱','🎨','⚙️','⚡','🚀','📊','📋','🔧','💡','✅','🧪','🔍','📐','💻','🌐','🔒','📦','🎯','🖌️','📝','🏗️','🧩','🔗','📸','🎬','🛒','💳','📈','🗂️'];
 
 // ─── Datos demo (fallback cuando Supabase no está configurado) ───────────────
@@ -42,7 +53,7 @@ const FALLBACK_PROJECTS = {
       { id:1, title:'Filtro por precio', type:'Nueva funcionalidad', priority:'Alta', status:'En revisión', date:'10 May 2025', desc:'Slider de rango de precios en la sidebar.', reply:'', seen:true },
     ],
     reuniones: [
-      { id:1, dia:20, mes:4, anio:2025, hora:'10:00', nombre:'Carlos Méndez', email:'carlos@acme.com', estado:'Confirmada' },
+      { id:1, dia:20, mes:4, anio:2025, hora:'10:00', nombre:'Carlos Méndez', email:'carlos@acme.com', estado:'Confirmada', duration:'1 hora', timezone:'America/Santiago (GMT-3)', reminder:'Ambos', recurrence:'Sin repetir', videoLink:'https://meet.google.com/abc-defg-hij', agenda:'Revisión de avances del e-commerce y aprobación de mockups finales.', notes:'Se aprobó el diseño final. Pendiente: integrar pasarela de pagos.' },
     ],
   },
   nova: {
@@ -79,12 +90,30 @@ const FALLBACK_PROJECTS = {
 };
 
 const LOCAL_USERS = {
-  admin:      { name: 'Matias',       project: 'acme', role: 'admin',  hash: btoa('admin.123') },
-  acme:       { name: 'Equipo ACME',  project: 'acme', role: 'client', hash: btoa('acme.123') },
-  nova:       { name: 'Nova Inc',     project: 'nova', role: 'client', hash: btoa('nova.123') },
-  sebastian:  { name: 'Sebastian G.', project: 'sebastian', role: 'client', hash: btoa('sebastian.123') },
-  duoc:       { name: 'Duoc UC',      project: 'duoc', role: 'client', hash: btoa('duoc.123') },
+  admin:      { name: 'Matias',       project: 'acme', role: 'admin'  },
+  acme:       { name: 'Equipo ACME',  project: 'acme', role: 'client' },
+  nova:       { name: 'Nova Inc',     project: 'nova', role: 'client' },
+  sebastian:  { name: 'Sebastian G.', project: 'sebastian', role: 'client' },
+  duoc:       { name: 'Duoc UC',      project: 'duoc', role: 'client' },
 };
+
+const DEMO_HASHES = {
+  admin:     '509078a8509078a8509078a8509078a8509078a8509078a8509078a8509078a8',
+  acme:      '483361be483361be483361be483361be483361be483361be483361be483361be',
+  nova:      '038fb702038fb702038fb702038fb702038fb702038fb702038fb702038fb702',
+  sebastian: '6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee6dc7b1ee',
+  duoc:      '2d6e33622d6e33622d6e33622d6e33622d6e33622d6e33622d6e33622d6e3362',
+};
+
+async function sha256(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').repeat(8);
+}
 
 // ═══════════════════════════════════════════════════════
 //  ESTADO GLOBAL
@@ -97,10 +126,18 @@ let calendar       = { y:new Date().getFullYear(), m:new Date().getMonth(), selD
 let pendingBooking = null;
 let replyingId     = null;
 let editingTask    = null;
+let editingEvId    = null;
 let pickedIcon     = '🖥';
 let dragItem       = null;
+let roadmapLocked  = false;
 let projectCache   = {};
 let reminderTimers = [];
+let pendingEvFile  = null; // { name, type, size, data (base64) }
+let meetingFilter  = 'Todas';
+let meetingSearch  = '';
+let editingMeeting = null;
+let adminCalView   = { y:new Date().getFullYear(), m:new Date().getMonth() };
+let renderGeneration = 0;
 
 // Sesión: cierre automático por inactividad (30 minutos)
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -116,15 +153,18 @@ const SB_HEADERS = {
 };
 
 function genId() {
-  return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Date.now().toString(36) + Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function sbGet(table, queryString) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${queryString}`, { headers: SB_HEADERS });
-    if (!res.ok) { console.error(`[sbGet] ${table}: ${res.status} ${res.statusText}`); return null; }
+    if (!res.ok) { log(`[sbGet] ${table}: ${res.status} ${res.statusText}`); return null; }
     return await res.json();
-  } catch (e) { console.error(`[sbGet] ${table} fetch error:`, e.message); return null; }
+  } catch (e) { log(`[sbGet] ${table} fetch error:`, e.message); return null; }
 }
 
 async function sbUpsert(table, body) {
@@ -134,9 +174,9 @@ async function sbUpsert(table, body) {
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body:    JSON.stringify(body),
     });
-    if (!res.ok) { console.error(`[sbUpsert] ${table}: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
+    if (!res.ok) { log(`[sbUpsert] ${table}: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
     return { ok: true };
-  } catch (e) { console.error(`[sbUpsert] ${table} fetch error:`, e.message); return { ok: false, error: e.message }; }
+  } catch (e) { log(`[sbUpsert] ${table} fetch error:`, e.message); return { ok: false, error: e.message }; }
 }
 
 async function loadProject(slug) {
@@ -154,6 +194,12 @@ async function loadProject(slug) {
   } catch { return FALLBACK_PROJECTS[slug] ? JSON.parse(JSON.stringify(FALLBACK_PROJECTS[slug])) : null; }
 }
 
+function calcProgress(p) {
+  const total = (p.done?.length || 0) + (p.wip?.length || 0) + (p.pending?.length || 0);
+  if (!total) return 0;
+  return Math.round((p.done.length / total) * 100);
+}
+
 async function saveProject(slug, data) {
   if (!slug || !data) return { ok: false, error: 'Invalid params' };
   if (IS_CONFIGURED) {
@@ -163,21 +209,26 @@ async function saveProject(slug, data) {
         headers: { ...SB_HEADERS, 'Prefer': 'return=representation' },
         body:    JSON.stringify({ p_slug: slug, p_data: data }),
       });
-      if (!res.ok) { console.error(`[saveProject] RPC: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
+      if (!res.ok) { log(`[saveProject] RPC: ${res.status} ${res.statusText}`); return { ok: false, error: res.status }; }
       return { ok: true };
-    } catch (e) { console.error('[saveProject] RPC fetch error:', e.message); return { ok: false, error: e.message }; }
+    } catch (e) { log('[saveProject] RPC fetch error:', e.message); return { ok: false, error: e.message }; }
   }
   try {
     const stored = localStorage.getItem('portal_v3');
     const all    = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(FALLBACK_PROJECTS));
     all[slug]    = data;
-    localStorage.setItem('portal_v3', JSON.stringify(all));
+    const serialized = JSON.stringify(all);
+    if (serialized.length > 4.5 * 1024 * 1024) {
+      showNotif('Almacenamiento lleno', 'Se superó el límite de almacenamiento local. Considera configurar Supabase.', 8000);
+      return { ok: false, error: 'QuotaExceeded' };
+    }
+    localStorage.setItem('portal_v3', serialized);
     return { ok: true };
   } catch (e) {
     if (e.name === 'QuotaExceededError') {
       showNotif('Almacenamiento lleno', 'Se superó el límite de almacenamiento local. Libera espacio.', 8000);
     }
-    console.error('[saveProject] localStorage error:', e.message);
+    log('[saveProject] localStorage error:', e.message);
     return { ok: false, error: e.message };
   }
 }
@@ -203,17 +254,57 @@ async function authenticateUser(username, password) {
   }
   // Fallback local (solo modo demo sin Supabase)
   const user = LOCAL_USERS[username.toLowerCase()];
-  if (!user || user.hash !== btoa(password)) return null;
+  if (!user) return null;
+  const hash = await sha256(username.toLowerCase() + ':' + password);
+  if (DEMO_HASHES[username.toLowerCase()] !== hash) return null;
   return { name: user.name, project: user.project, role: user.role };
 }
 
 // ═══════════════════════════════════════════════════════
 //  INICIO
 // ═══════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   hide('loadingOverlay');
-  show('loginShell', 'flex');
   requestNotifPermission();
+
+  let session = null;
+  try {
+    const raw = sessionStorage.getItem('portal_session');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const MAX_AGE = 24 * 60 * 60 * 1000;
+      if (parsed.ts && (Date.now() - parsed.ts) < MAX_AGE) {
+        session = parsed;
+      } else {
+        sessionStorage.removeItem('portal_session');
+      }
+    }
+  } catch (e) { log('[session] restore error:', e.message); }
+
+  if (session) {
+    try {
+      currentUser    = { username: session.username, name: session.name, project: session.project, role: session.role };
+      currentProject = session.role === 'admin' ? 'acme' : session.project;
+      projectCache[currentProject] = await loadProject(currentProject);
+
+      if (session.role === 'admin') {
+        show('adminShell', 'flex');
+        await initAdmin();
+      } else {
+        show('clientShell', 'flex');
+        initClient();
+      }
+      if (!IS_CONFIGURED) showConfigBanner();
+      startInactivityWatcher();
+      return;
+    } catch (e) {
+      log('[session] init error:', e.message);
+      currentUser = null;
+      currentProject = null;
+    }
+  }
+
+  show('loginShell', 'flex');
 });
 
 // Reinicia el timer cada vez que el usuario hace algo
@@ -233,12 +324,15 @@ function resetInactivityTimer(debounced = false) {
   }, SESSION_TIMEOUT_MS);
 }
 
+const inactivityHandler = () => resetInactivityTimer();
+const inactivityDebouncedHandler = () => resetInactivityTimer(true);
+
 function startInactivityWatcher() {
   ['mousemove', 'scroll'].forEach(ev =>
-    document.addEventListener(ev, () => resetInactivityTimer(true), { passive: true })
+    document.addEventListener(ev, inactivityDebouncedHandler, { passive: true })
   );
   ['keydown', 'click', 'touchstart'].forEach(ev =>
-    document.addEventListener(ev, () => resetInactivityTimer(), { passive: true })
+    document.addEventListener(ev, inactivityHandler, { passive: true })
   );
   resetInactivityTimer();
 }
@@ -246,8 +340,11 @@ function startInactivityWatcher() {
 function stopInactivityWatcher() {
   clearTimeout(inactivityTimer);
   clearTimeout(debounceTimer);
-  ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev =>
-    document.removeEventListener(ev, resetInactivityTimer)
+  ['mousemove', 'scroll'].forEach(ev =>
+    document.removeEventListener(ev, inactivityDebouncedHandler)
+  );
+  ['keydown', 'click', 'touchstart'].forEach(ev =>
+    document.removeEventListener(ev, inactivityHandler)
   );
 }
 
@@ -259,23 +356,49 @@ document.getElementById('loginBtn').addEventListener('click', doLogin);
   document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); })
 );
 
+let loginAttempts = 0;
+let loginLockoutUntil = 0;
+
 async function doLogin() {
   const username = document.getElementById('lu').value.trim().toLowerCase();
   const password = document.getElementById('lp').value;
   const errorEl  = document.getElementById('loginErr');
+
+  if (Date.now() < loginLockoutUntil) {
+    const secs = Math.ceil((loginLockoutUntil - Date.now()) / 1000);
+    errorEl.textContent = `Demasiados intentos. Espera ${secs}s.`;
+    errorEl.style.display = 'block';
+    return;
+  }
 
   setLoading(true);
   const user = await authenticateUser(username, password);
   setLoading(false);
 
   if (!user) {
+    loginAttempts++;
+    if (loginAttempts >= 5) {
+      loginLockoutUntil = Date.now() + 30000;
+      loginAttempts = 0;
+      errorEl.textContent = 'Demasiados intentos. Espera 30 segundos.';
+    } else {
+      errorEl.textContent = 'Usuario o contraseña incorrectos.';
+    }
     errorEl.style.display = 'block';
     document.getElementById('lp').value = '';
     return;
   }
 
+  loginAttempts = 0;
+  loginLockoutUntil = 0;
   errorEl.style.display = 'none';
+  errorEl.textContent = 'Usuario o contraseña incorrectos.';
   currentUser = { username, ...user };
+  try {
+    sessionStorage.setItem('portal_session', JSON.stringify({
+      username, name: user.name, project: user.project, role: user.role, ts: Date.now()
+    }));
+  } catch (e) { log('[session] save error:', e.message); }
   hide('loginShell');
 
   if (user.role === 'admin') {
@@ -297,6 +420,7 @@ async function doLogin() {
 function logout() {
   currentUser    = null;
   currentProject = null;
+  try { sessionStorage.removeItem('portal_session'); } catch {}
   clientTab      = 'overview';
   adminTab       = 'adash';
   calendar       = { y:new Date().getFullYear(), m:new Date().getMonth(), selDay:null, selSlot:null };
@@ -339,14 +463,25 @@ function scheduleReminders(meeting) {
   reminderTimers = [];
   const now    = Date.now();
   const target = new Date(meeting.anio, meeting.mes, meeting.dia, parseInt(meeting.hora, 10), 0, 0).getTime();
-  const oneHourBefore = target - 3600000;
-  if (oneHourBefore > now) {
-    const t1 = setTimeout(() => showNotif('Reunión en 1 hora', `${meeting.nombre} · ${meeting.dia} de ${MONTHS[meeting.mes]} · ${meeting.hora}`, 8000), oneHourBefore - now);
-    reminderTimers.push(t1);
+  const reminder = meeting.reminder || '1 hora antes';
+
+  if (reminder === '1 hora antes' || reminder === 'Ambos') {
+    const oneHourBefore = target - 3600000;
+    if (oneHourBefore > now) {
+      const t1 = setTimeout(() => showNotif('Reunión en 1 hora', `${meeting.nombre} · ${meeting.dia} de ${MONTHS[meeting.mes]} · ${meeting.hora}`, 8000), oneHourBefore - now);
+      reminderTimers.push(t1);
+    }
+  }
+  if (reminder === '1 día antes' || reminder === 'Ambos') {
+    const oneDayBefore = target - 86400000;
+    if (oneDayBefore > now) {
+      const t2 = setTimeout(() => showNotif('Reunión mañana', `${meeting.nombre} · ${meeting.dia} de ${MONTHS[meeting.mes]} · ${meeting.hora}`, 8000), oneDayBefore - now);
+      reminderTimers.push(t2);
+    }
   }
   if (target > now) {
-    const t2 = setTimeout(() => showNotif('Reunión ahora', `${meeting.nombre} · ${meeting.hora} · ${meeting.email}`, 8000), target - now);
-    reminderTimers.push(t2);
+    const t3 = setTimeout(() => showNotif('Reunión ahora', `${meeting.nombre} · ${meeting.hora} · ${meeting.email}`, 8000), target - now);
+    reminderTimers.push(t3);
   }
 }
 
@@ -387,7 +522,7 @@ async function renderClientView() {
   };
   el.innerHTML = views[clientTab]?.() || '';
 
-  animateProgressBar('cProgFill', project.progress);
+  animateProgressBar('cProgFill', calcProgress(project));
   if (clientTab === 'calendar') wireCalendar();
   if (clientTab === 'changes')  wireClientChanges();
   if (!IS_CONFIGURED) showConfigBanner();
@@ -401,7 +536,7 @@ function buildClientOverview(p) {
 
   return `
     <div class="g4" style="margin-bottom:12px">
-      <div class="stat-card"><div class="stat-lbl">Progreso</div>   <div class="stat-val" style="color:var(--gold)">${p.progress}%</div>  <div class="stat-sub">Del proyecto</div></div>
+      <div class="stat-card"><div class="stat-lbl">Progreso</div>   <div class="stat-val" style="color:var(--gold)">${calcProgress(p)}%</div>  <div class="stat-sub">Del proyecto</div></div>
       <div class="stat-card"><div class="stat-lbl">Completadas</div><div class="stat-val" style="color:var(--green)">${p.done.length}</div> <div class="stat-sub">Tareas listas</div></div>
       <div class="stat-card"><div class="stat-lbl">En proceso</div> <div class="stat-val" style="color:var(--yellow)">${p.wip.length}</div> <div class="stat-sub">Ahora mismo</div></div>
       <div class="stat-card"><div class="stat-lbl">Pendientes</div> <div class="stat-val" style="color:var(--soft)">${p.pending.length}</div><div class="stat-sub">Por cumplir</div></div>
@@ -413,7 +548,7 @@ function buildClientOverview(p) {
           <div style="display:flex;flex-wrap:wrap;gap:5px">${phaseChips}</div>
         </div>
         <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:700;color:var(--gold);line-height:1;letter-spacing:-1px">
-          ${p.progress}<span style="font-size:14px;color:var(--muted);font-weight:400;font-family:'DM Sans',sans-serif">%</span>
+          ${calcProgress(p)}<span style="font-size:14px;color:var(--muted);font-weight:400;font-family:'DM Sans',sans-serif">%</span>
         </div>
       </div>
       <div class="prog-track"><div class="prog-fill" id="cProgFill" style="width:0%"></div></div>
@@ -473,6 +608,7 @@ function buildClientEvidence(p) {
               <div class="ev-title">${esc(e.title)}</div>
               <div class="ev-date">${esc(e.date)}</div>
               ${e.note ? `<div style="font-size:11px;color:var(--gold);margin-top:5px">📝 ${esc(e.note)}</div>` : ''}
+              ${e.fileName ? `<div style="margin-top:8px"><a href="${e.fileData}" download="${esc(e.fileName)}" class="ev-file-link">📎 ${esc(e.fileName)}</a></div>` : ''}
             </div>
           </div>`).join('')}
       </div>
@@ -510,8 +646,8 @@ function buildClientChanges(p) {
           </select>
         </div>
       </div>
-      <div class="frow"><label class="flabel">Título</label><input class="finput" id="chgTitle" placeholder="Ej: Cambiar colores del header"></div>
-      <div class="frow"><label class="flabel">Descripción</label><textarea class="finput" id="chgDesc" rows="3" placeholder="Describe el cambio con detalle..."></textarea></div>
+      <div class="frow"><label class="flabel">Título</label><input class="finput" id="chgTitle" placeholder="Ej: Cambiar colores del header" maxlength="200"></div>
+      <div class="frow"><label class="flabel">Descripción</label><textarea class="finput" id="chgDesc" rows="3" placeholder="Describe el cambio con detalle..." maxlength="2000"></textarea></div>
       <button class="btn-gold" style="width:auto;padding:9px 22px" id="chgSubmit">Enviar solicitud</button>
       <div id="chgOk" class="alert-ok" style="display:none">✓ Solicitud enviada.</div>
     </div>
@@ -527,7 +663,7 @@ function wireClientChanges() {
     const desc     = document.getElementById('chgDesc').value.trim();
     const type     = document.getElementById('chgType').value;
     const priority = document.getElementById('chgPri').value;
-    if (!title || !desc || !type || !priority) { alert('Completa todos los campos.'); return; }
+    if (!title || !desc || !type || !priority) { showNotif('Campos incompletos', 'Completa todos los campos.'); return; }
 
     projectCache[currentProject] = await loadProject(currentProject);
     projectCache[currentProject].changes.unshift({
@@ -594,8 +730,9 @@ function switchAdminTab(tab) {
 }
 
 async function renderAdminView() {
-  // Siempre recarga para que el admin vea cambios del cliente en tiempo real
+  const gen = ++renderGeneration;
   projectCache[currentProject] = await loadProject(currentProject);
+  if (gen !== renderGeneration) return;
   const project = projectCache[currentProject];
   if (!project) return;
 
@@ -616,10 +753,10 @@ async function renderAdminView() {
   };
   el.innerHTML = views[adminTab]?.() || '';
 
-  animateProgressBar('aProgFill', project.progress);
+  animateProgressBar('aProgFill', calcProgress(project));
 
   const wireFns = {
-    adash:        wireAdminDash,
+    adash:        () => {},
     aroadmap:     wireAdminRoadmap,
     aevidence:    wireAdminEvidence,
     areuniones:   wireAdminMeetings,
@@ -637,7 +774,7 @@ function buildAdminDash(p) {
 
   return `
     <div class="g4" style="margin-bottom:12px">
-      <div class="stat-card"><div class="stat-lbl">Progreso</div>   <div class="stat-val" style="color:var(--gold)">${p.progress}%</div>      <div class="stat-sub">Proyecto actual</div></div>
+      <div class="stat-card"><div class="stat-lbl">Progreso</div>   <div class="stat-val" style="color:var(--gold)">${calcProgress(p)}%</div>      <div class="stat-sub">Proyecto actual</div></div>
       <div class="stat-card"><div class="stat-lbl">Sin leer</div>   <div class="stat-val" style="color:${unread.length ? 'var(--red)' : 'var(--green)'}">${unread.length}</div>  <div class="stat-sub">Solicitudes</div></div>
       <div class="stat-card"><div class="stat-lbl">Reuniones</div>  <div class="stat-val" style="color:${pendingMtg.length ? 'var(--yellow)' : 'var(--soft)'}">${pendingMtg.length}</div><div class="stat-sub">Por confirmar</div></div>
       <div class="stat-card"><div class="stat-lbl">Evidencias</div> <div class="stat-val" style="color:var(--blue)">${p.evidence.length}</div>  <div class="stat-sub">Subidas</div></div>
@@ -646,12 +783,7 @@ function buildAdminDash(p) {
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div class="card-title" style="margin-bottom:0">${esc(p.name)} — ${esc(p.client)}</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:12px;color:var(--muted)">Progreso:</span>
-          <input type="number" id="dashProg" value="${p.progress}" min="0" max="100"
-            style="width:60px;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;padding:5px 8px;color:var(--gold);font-size:13px;font-family:'DM Mono',monospace;outline:none;text-align:center">%
-          <button class="btn-sm" id="saveProgBtn">Guardar</button>
-        </div>
+        <div style="font-size:12px;color:var(--muted)">${p.done.length} de ${p.done.length + p.wip.length + p.pending.length} tareas completadas</div>
       </div>
       <div class="prog-track"><div class="prog-fill" id="aProgFill" style="width:0%"></div></div>
     </div>
@@ -670,13 +802,17 @@ function buildAdminDash(p) {
     ${pendingMtg.length ? `
       <div class="card" style="border-color:rgba(245,158,11,.18)">
         <div class="card-title" style="color:var(--yellow)">🗓 Reuniones por confirmar (${pendingMtg.length})</div>
-        ${pendingMtg.map(r => `
+        ${pendingMtg.map(r => {
+          const durLabel = r.duration || '1 hora';
+          return `
           <div class="cr-item">
             <div class="cr-head">
               <div class="cr-title">${esc(r.nombre)}</div><span class="pill pill-yellow">Solicitada</span>
             </div>
-            <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · ${r.email}</div>
-          </div>`).join('')}
+            <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · ${durLabel} · ${r.email}</div>
+            ${r.agenda ? `<div class="meeting-agenda" style="margin-top:6px"> ${esc(r.agenda)}</div>` : ''}
+          </div>`;
+        }).join('')}
         <button class="btn-gold" style="width:auto;padding:8px 18px;margin-top:8px" onclick="switchAdminTab('areuniones')">Gestionar →</button>
       </div>` : ''}
 
@@ -702,20 +838,9 @@ function buildAdminDash(p) {
     </div>`;
 }
 
-function wireAdminDash() {
-  document.getElementById('saveProgBtn')?.addEventListener('click', async () => {
-    const value = parseInt(document.getElementById('dashProg').value, 10);
-    if (isNaN(value) || value < 0 || value > 100) { alert('Valor entre 0 y 100.'); return; }
-    projectCache[currentProject].progress = value;
-    setSaving(true);
-    await saveProject(currentProject, projectCache[currentProject]);
-    setSaving(false);
-    renderAdminView();
-  });
-}
-
 // ── Admin: Roadmap ────────────────────────────────────
 function buildAdminRoadmap(p) {
+  const locked = roadmapLocked;
   const editableColumn = (tasks, col, label, color) => `
     <div class="rm-col" data-col="${col}" id="rmCol_${col}">
       <div class="rm-col-hdr">
@@ -725,19 +850,19 @@ function buildAdminRoadmap(p) {
       </div>
       <div id="rmList_${col}">
         ${tasks.map(t => `
-          <div class="rm-task-card" draggable="true" data-id="${t.id}" data-col="${col}">
+          <div class="rm-task-card" draggable="${locked ? 'false' : 'true'}" data-id="${t.id}" data-col="${col}" style="${locked ? 'opacity:0.7' : ''}">
             <div class="rm-task-name">${esc(t.name)}</div>
             <div class="rm-task-date">${esc(t.date)}</div>
-            <div class="rm-task-actions">
+            ${locked ? '' : `<div class="rm-task-actions">
               <button class="rm-task-edit" data-id="${t.id}" data-col="${col}">✏</button>
               <button class="rm-task-del"  data-id="${t.id}" data-col="${col}">✕</button>
-            </div>
+            </div>`}
           </div>`).join('') || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px 0;border:1px dashed var(--line);border-radius:6px">Arrastra aquí</div>'}
       </div>
-      <div class="add-row">
+      ${locked ? '' : `<div class="add-row">
         <input id="rmNew_${col}" placeholder="+ Nueva tarea...">
         <button class="btn-sm rm-add-btn" data-col="${col}">Agregar</button>
-      </div>
+      </div>`}
     </div>`;
 
   const phaseSelects = p.phases.map((phase, i) => `
@@ -754,7 +879,7 @@ function buildAdminRoadmap(p) {
     <div class="card" style="margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="card-title" style="margin-bottom:0">Roadmap — Drag & Drop</div>
-        <div style="font-size:12px;color:var(--muted)">Arrastra tarjetas entre columnas para moverlas.</div>
+        <button class="btn-sm" id="toggleLockBtn" style="font-size:16px;padding:4px 10px">${locked ? '🔒' : '🔓'}</button>
       </div>
     </div>
     <div class="g3">
@@ -770,6 +895,14 @@ function buildAdminRoadmap(p) {
 }
 
 function wireAdminRoadmap() {
+  // Toggle lock
+  document.getElementById('toggleLockBtn')?.addEventListener('click', () => {
+    roadmapLocked = !roadmapLocked;
+    renderAdminView();
+  });
+
+  if (roadmapLocked) return;
+
   // Drag & drop
   document.querySelectorAll('.rm-task-card').forEach(card => {
     card.addEventListener('dragstart', e => {
@@ -794,7 +927,7 @@ function wireAdminRoadmap() {
       if (!dragItem || dragItem.col === colId) { dragItem = null; return; }
 
       const { id, col: fromCol } = dragItem;
-      const task = projectCache[currentProject][fromCol].find(t => t.id === id);
+      const task = projectCache[currentProject][fromCol].find(t => String(t.id) === String(id));
       if (!task) { dragItem = null; return; }
 
       const dateByCol = {
@@ -804,7 +937,7 @@ function wireAdminRoadmap() {
       };
       task.date = dateByCol[colId];
 
-      projectCache[currentProject][fromCol] = projectCache[currentProject][fromCol].filter(t => t.id !== id);
+      projectCache[currentProject][fromCol] = projectCache[currentProject][fromCol].filter(t => String(t.id) !== String(id));
       projectCache[currentProject][colId].push(task);
       await saveProject(currentProject, projectCache[currentProject]);
       dragItem = null;
@@ -815,7 +948,7 @@ function wireAdminRoadmap() {
   // Editar / eliminar tarea
   document.querySelectorAll('.rm-task-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-      const task = projectCache[currentProject][btn.dataset.col].find(t => t.id === btn.dataset.id);
+      const task = projectCache[currentProject][btn.dataset.col].find(t => String(t.id) === String(btn.dataset.id));
       if (!task) return;
       editingTask = { id: btn.dataset.id, col: btn.dataset.col };
       document.getElementById('taskEditName').value = task.name;
@@ -827,7 +960,7 @@ function wireAdminRoadmap() {
   document.querySelectorAll('.rm-task-del').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta tarea?')) return;
-      projectCache[currentProject][btn.dataset.col] = projectCache[currentProject][btn.dataset.col].filter(t => t.id !== btn.dataset.id);
+      projectCache[currentProject][btn.dataset.col] = projectCache[currentProject][btn.dataset.col].filter(t => String(t.id) !== String(btn.dataset.id));
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
@@ -871,9 +1004,9 @@ async function addTask(col) {
 async function saveTaskEdit() {
   const name = document.getElementById('taskEditName').value.trim();
   const date = document.getElementById('taskEditDate').value.trim();
-  if (!name) { alert('El nombre es obligatorio.'); return; }
+  if (!name) { showNotif('Campo obligatorio', 'El nombre es obligatorio.'); return; }
 
-  const task = projectCache[currentProject][editingTask.col].find(t => t.id === editingTask.id);
+  const task = projectCache[currentProject][editingTask.col].find(t => String(t.id) === String(editingTask.id));
   if (task) { task.name = name; if (date) task.date = date; }
 
   await saveProject(currentProject, projectCache[currentProject]);
@@ -886,46 +1019,67 @@ function buildAdminEvidence(p) {
   return `
     <div class="card">
       <div class="card-title">Gestión de evidencias</div>
-      <div style="font-size:12px;color:var(--muted);margin:-6px 0 14px">Solo tú puedes agregar evidencias. El cliente las ve al instante.</div>
+      <div style="font-size:12px;color:var(--muted);margin:-6px 0 14px">Sube capturas y archivos de avance. El cliente los ve de inmediato.</div>
       <div class="ev-grid">
         ${p.evidence.map(e => `
           <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);overflow:hidden">
             <div class="ev-thumb">${e.icon}</div>
             <div class="ev-cap" style="padding:10px 12px">
-              <input class="inline-edit" data-evid="${e.id}" data-field="title" value="${esc(e.title)}"       placeholder="Título">
-              <input class="inline-edit" data-evid="${e.id}" data-field="date"  value="${esc(e.date)}"        placeholder="Fecha" style="font-size:11px;color:var(--muted)">
-              <input class="inline-edit" data-evid="${e.id}" data-field="note"  value="${esc(e.note || '')}"  placeholder="📝 Nota para cliente" style="font-size:11px;color:var(--gold)">
-              <input class="inline-edit" data-evid="${e.id}" data-field="icon"  value="${e.icon}"             placeholder="Emoji" style="font-size:22px;text-align:center">
-              <button class="btn-danger ev-del-btn" data-evid="${e.id}" style="width:100%;margin-top:6px">Eliminar</button>
+              <div style="font-size:13px;font-weight:500;margin-bottom:4px">${esc(e.title)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${esc(e.date)}</div>
+              ${e.note ? `<div style="font-size:11px;color:var(--gold);margin-bottom:6px">📝 ${esc(e.note)}</div>` : ''}
+              ${e.fileName ? `<div style="font-size:11px;color:var(--soft);display:flex;align-items:center;gap:4px;margin-bottom:6px"><span>📎</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(e.fileName)}</span></div>` : ''}
+              <div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn-sm ev-edit-btn" data-evid="${e.id}" style="flex:1">Editar</button>
+                <button class="btn-danger ev-del-btn" data-evid="${e.id}" style="flex:1">Eliminar</button>
+              </div>
             </div>
           </div>`).join('')}
         <div class="upload-zone" id="addEvBtn" style="min-height:200px">
           <div style="font-size:26px;color:var(--muted)">＋</div>
-          <div style="font-size:12px;color:var(--muted)">Agregar evidencia<br><span style="color:var(--gold)">Solo tú puedes hacer esto</span></div>
+          <div style="font-size:12px;color:var(--muted)">Agregar evidencia<br><span style="color:var(--gold)">Solo tú puedes subir</span></div>
         </div>
       </div>
     </div>`;
 }
 
 function wireAdminEvidence() {
-  document.querySelectorAll('.inline-edit').forEach(input => {
-    input.addEventListener('change', async () => {
-      const ev = projectCache[currentProject].evidence.find(e => e.id === input.dataset.evid);
-      if (ev) { ev[input.dataset.field] = input.value; await saveProject(currentProject, projectCache[currentProject]); }
+  document.querySelectorAll('.ev-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ev = projectCache[currentProject].evidence.find(e => String(e.id) === String(btn.dataset.evid));
+      if (!ev) return;
+      editingEvId = ev.id;
+      document.getElementById('evEditTitle').value = ev.title;
+      document.getElementById('evEditDate').value = ev.date;
+      document.getElementById('evEditNote').value = ev.note || '';
+
+      const grid = document.getElementById('evEditIconGrid');
+      grid.innerHTML = PRESET_ICONS.map(icon =>
+        `<div class="icon-opt${icon === ev.icon ? ' picked' : ''}" data-icon="${icon}">${icon}</div>`
+      ).join('');
+      grid.querySelectorAll('.icon-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+          grid.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('picked'));
+          opt.classList.add('picked');
+        });
+      });
+
+      openModal('evEditModal', 'evEditTitle');
     });
   });
 
   document.querySelectorAll('.ev-del-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta evidencia?')) return;
-      projectCache[currentProject].evidence = projectCache[currentProject].evidence.filter(e => e.id !== btn.dataset.evid);
+      projectCache[currentProject].evidence = projectCache[currentProject].evidence.filter(e => String(e.id) !== String(btn.dataset.evid));
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
   });
 
   document.getElementById('addEvBtn')?.addEventListener('click', () => {
-    ['evTitle', 'evDate', 'evNote', 'evIconCustom'].forEach(id => document.getElementById(id).value = '');
+    ['evTitle', 'evDate', 'evNote'].forEach(id => document.getElementById(id).value = '');
+    clearEvFile();
     pickedIcon = '🖥';
     const grid = document.getElementById('iconGrid');
     grid.innerHTML = PRESET_ICONS.map(icon =>
@@ -936,36 +1090,118 @@ function wireAdminEvidence() {
         pickedIcon = opt.dataset.icon;
         grid.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('picked'));
         opt.classList.add('picked');
-        document.getElementById('evIconCustom').value = '';
       });
     });
+
+    // Wire file upload
+    const fileZone  = document.getElementById('evFileZone');
+    const fileInput = document.getElementById('evFileInput');
+    fileZone.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showNotif('Archivo muy grande', 'El archivo supera el límite de 5MB.');
+        fileInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        pendingEvFile = { name: file.name, type: file.type, size: file.size, data: ev.target.result };
+        document.getElementById('evFileName').textContent = file.name;
+        document.getElementById('evFilePreview').style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+    };
+
     openModal('evModal', 'evTitle');
   });
+}
+
+function clearEvFile() {
+  pendingEvFile = null;
+  const preview = document.getElementById('evFilePreview');
+  if (preview) preview.style.display = 'none';
+  const fileInput = document.getElementById('evFileInput');
+  if (fileInput) fileInput.value = '';
 }
 
 async function saveEvidence() {
   const title  = document.getElementById('evTitle').value.trim();
   const date   = document.getElementById('evDate').value.trim() || 'Sin fecha';
   const note   = document.getElementById('evNote').value.trim();
-  const custom = document.getElementById('evIconCustom').value.trim();
-  const icon   = custom || pickedIcon || '📄';
-  if (!title) { alert('El título es obligatorio.'); return; }
+  const icon   = pickedIcon || '';
+  if (!title) { showNotif('Campo obligatorio', 'El título es obligatorio.'); return; }
 
-  projectCache[currentProject].evidence.push({ id: genId(), title, date, icon, note });
+  const evidence = { id: genId(), title, date, icon, note };
+  if (pendingEvFile) {
+    evidence.fileName = pendingEvFile.name;
+    evidence.fileType = pendingEvFile.type;
+    evidence.fileSize = pendingEvFile.size;
+    evidence.fileData = pendingEvFile.data;
+  }
+
+  projectCache[currentProject].evidence.push(evidence);
   await saveProject(currentProject, projectCache[currentProject]);
   closeModal('evModal');
+  clearEvFile();
+  renderAdminView();
+}
+
+async function saveEvidenceEdit() {
+  const title = document.getElementById('evEditTitle').value.trim();
+  const date  = document.getElementById('evEditDate').value.trim() || 'Sin fecha';
+  const note  = document.getElementById('evEditNote').value.trim();
+  const iconEl = document.querySelector('#evEditIconGrid .icon-opt.picked');
+  const icon  = iconEl ? iconEl.dataset.icon : '';
+  if (!title) { showNotif('Campo obligatorio', 'El título es obligatorio.'); return; }
+
+  const ev = projectCache[currentProject].evidence.find(e => String(e.id) === String(editingEvId));
+  if (ev) {
+    ev.title = title;
+    ev.date  = date;
+    ev.note  = note;
+    ev.icon  = icon;
+  }
+
+  await saveProject(currentProject, projectCache[currentProject]);
+  closeModal('evEditModal');
   renderAdminView();
 }
 
 // ── Admin: Reuniones ──────────────────────────────────
 function buildAdminMeetings(p) {
-  const meetingItems = p.reuniones.length
-    ? p.reuniones.map(r => `
-        <div class="cr-item">
+  const meetings = p.reuniones || [];
+  const now = new Date();
+  const thisMonth = meetings.filter(r => r.mes === now.getMonth() && r.anio === now.getFullYear());
+  const confirmed = thisMonth.filter(r => r.estado === 'Confirmada').length;
+  const cancelled = thisMonth.filter(r => r.estado === 'Cancelada').length;
+  const total = thisMonth.length;
+  const cancelRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
+  const durMap = { '30 min': 30, '1 hora': 60, '1.5 horas': 90, '2 horas': 120 };
+  const avgDur = thisMonth.filter(r => r.estado === 'Confirmada' && durMap[r.duration]).reduce((sum, r) => sum + (durMap[r.duration] || 60), 0) / (confirmed || 1);
+
+  const filtered = meetings.filter(r => {
+    if (meetingFilter !== 'Todas' && r.estado !== meetingFilter) return false;
+    if (meetingSearch && !r.nombre.toLowerCase().includes(meetingSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const filterBtns = ['Todas','Confirmadas','Solicitadas','Canceladas'].map(f =>
+    `<button class="filter-btn${meetingFilter === f ? ' active' : ''}" data-filter="${f}">${f} <span style="opacity:.6;font-size:10px">${meetings.filter(r => f === 'Todas' || r.estado === f).length}</span></button>`
+  ).join('');
+
+  const meetingItems = filtered.length
+    ? filtered.map(r => {
+        const durLabel = r.duration || '1 hora';
+        const tzLabel = r.timezone ? r.timezone.split(' ')[0].replace('America/','').replace('Europe/','').replace('_',' ') : '';
+        return `
+        <div class="cr-item meeting-item" data-meetid="${r.id}">
           <div class="cr-head">
             <div style="flex:1">
               <div class="cr-title">${esc(r.nombre)}</div>
-              <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · <a href="mailto:${esc(r.email)}" style="color:var(--gold)">${esc(r.email)}</a></div>
+              <div class="cr-meta">${r.dia} de ${MONTHS[r.mes]} ${r.anio} · ${r.hora} · ${durLabel}${tzLabel ? ' · ' + tzLabel : ''}</div>
+              ${r.videoLink ? `<div style="margin-top:4px"><a href="${safeUrl(r.videoLink)}" target="_blank" rel="noopener noreferrer" class="video-link"> Unirse a la videollamada</a></div>` : ''}
             </div>
             <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
               ${pillHtml(r.estado)}
@@ -973,41 +1209,138 @@ function buildAdminMeetings(p) {
                 <button class="btn-sm" style="color:var(--green);border-color:rgba(74,222,128,.2)" data-reid="${r.id}" data-action="Confirmada">✓ Aceptar</button>
                 <button class="btn-danger" data-reid="${r.id}" data-action="Cancelada">✕</button>` : ''}
               ${r.estado === 'Confirmada' ? `
+                <button class="btn-sm" data-reid="${r.id}" data-action="edit"> Editar</button>
                 <button class="btn-danger" data-reid="${r.id}" data-action="Cancelada">Cancelar</button>` : ''}
+              ${r.estado === 'Cancelada' ? `
+                <button class="btn-sm" data-reid="${r.id}" data-action="Confirmada">Reactivar</button>` : ''}
             </div>
           </div>
-          ${r.estado === 'Confirmada' ? '<div class="alert-ok" style="margin-top:8px;font-size:12px">✅ Confirmada — Recordatorios activos.</div>' : ''}
-        </div>`).join('')
-    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">No hay reuniones aún.</div>';
+          ${r.agenda ? `<div class="meeting-agenda">📋 ${esc(r.agenda)}</div>` : ''}
+          ${r.notes ? `<div class="meeting-notes"> <strong>Notas:</strong> ${esc(r.notes)}</div>` : ''}
+          ${r.recurrence && r.recurrence !== 'Sin repetir' ? `<div style="margin-top:6px;font-size:11px;color:var(--blue)">🔄 Recurrencia: ${esc(r.recurrence)}</div>` : ''}
+          ${r.estado === 'Confirmada' ? `<div class="alert-ok" style="margin-top:8px;font-size:12px">✅ Confirmada — Recordatorio: ${r.reminder || '1 hora antes'}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn-sm" data-reid="${r.id}" data-action="export">📥 Exportar .ics</button>
+            ${r.estado === 'Confirmada' ? `<button class="btn-sm" data-reid="${r.id}" data-action="addNotes">📝 Notas post-reunión</button>` : ''}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">No hay reuniones' + (meetingSearch ? ' con ese nombre' : '') + '.</div>';
+
+  const adminCal = buildAdminMiniCalendar(p);
 
   return `
+    <div class="g4" style="margin-bottom:12px">
+      <div class="stat-card"><div class="stat-lbl">Este mes</div><div class="stat-val" style="color:var(--gold)">${total}</div><div class="stat-sub">Reuniones</div></div>
+      <div class="stat-card"><div class="stat-lbl">Confirmadas</div><div class="stat-val" style="color:var(--green)">${confirmed}</div><div class="stat-sub">Activas</div></div>
+      <div class="stat-card"><div class="stat-lbl">Cancelación</div><div class="stat-val" style="color:${cancelRate > 30 ? 'var(--red)' : 'var(--soft)'}">${cancelRate}%</div><div class="stat-sub">Tasa este mes</div></div>
+      <div class="stat-card"><div class="stat-lbl">Duración prom.</div><div class="stat-val" style="color:var(--blue)">${Math.round(avgDur)}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">Promedio</div></div>
+    </div>
+
     <div class="card">
-      <div class="card-title">Reuniones del cliente</div>
-      <div style="font-size:12px;color:var(--muted);margin:-6px 0 14px">Al aceptar se activan recordatorios automáticos.</div>
+      <div class="card-title">Calendario visual</div>
+      ${adminCal}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">Reuniones del cliente</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${filterBtns}</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <input class="finput" id="meetSearch" placeholder="🔍 Buscar por nombre..." value="${esc(meetingSearch)}" style="max-width:300px">
+      </div>
       ${meetingItems}
     </div>
+
     <div class="card">
-      <div class="card-title">Agregar reunión manualmente</div>
+      <div class="card-title">Agregar reunión</div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Usar plantilla:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${MEETING_TEMPLATES.map((t, i) => `<button class="btn-sm tpl-btn" data-tpl="${i}">${t.name}</button>`).join('')}
+        </div>
+      </div>
       <div class="g2">
-        <div class="frow"><label class="flabel">Nombre</label><input class="finput" id="rNom"   placeholder="Nombre Apellido"></div>
-        <div class="frow"><label class="flabel">Email</label> <input class="finput" id="rEmail" type="email" placeholder="cliente@email.com"></div>
+        <div class="frow"><label class="flabel">Nombre</label><input class="finput" id="rNom" placeholder="Nombre Apellido" maxlength="100"></div>
+        <div class="frow"><label class="flabel">Email</label><input class="finput" id="rEmail" type="email" placeholder="cliente@email.com" maxlength="200"></div>
       </div>
       <div class="g3">
-        <div class="frow"><label class="flabel">Día</label>  <input class="finput" id="rDia"  type="number" min="1" max="31" placeholder="15"></div>
-        <div class="frow"><label class="flabel">Mes</label>  <select class="finput" id="rMes">${MONTHS.map((m,i) => `<option value="${i}">${m}</option>`).join('')}</select></div>
-        <div class="frow"><label class="flabel">Hora</label> <select class="finput" id="rHora">${SLOTS.map(s => `<option>${s}</option>`).join('')}</select></div>
+        <div class="frow"><label class="flabel">Día</label><input class="finput" id="rDia" type="number" min="1" max="31" placeholder="15"></div>
+        <div class="frow"><label class="flabel">Mes</label><select class="finput" id="rMes">${MONTHS.map((m,i) => `<option value="${i}">${m}</option>`).join('')}</select></div>
+        <div class="frow"><label class="flabel">Hora</label><select class="finput" id="rHora">${SLOTS.map(s => `<option>${s}</option>`).join('')}</select></div>
       </div>
+      <div class="g3">
+        <div class="frow"><label class="flabel">Duración</label><select class="finput" id="rDur">${DURATIONS.map(d => `<option>${d}</option>`).join('')}</select></div>
+        <div class="frow"><label class="flabel">Zona horaria</label><select class="finput" id="rTz">${TIMEZONES.map(t => `<option>${t}</option>`).join('')}</select></div>
+        <div class="frow"><label class="flabel">Recordatorio</label><select class="finput" id="rRem">${REMINDER_OPTIONS.map(r => `<option>${r}</option>`).join('')}</select></div>
+      </div>
+      <div class="g2">
+        <div class="frow"><label class="flabel">Recurrencia</label><select class="finput" id="rRec">${RECURRENCE_OPTIONS.map(r => `<option>${r}</option>`).join('')}</select></div>
+        <div class="frow"><label class="flabel">Link videollamada</label><input class="finput" id="rVideo" placeholder="https://meet.google.com/..." maxlength="500"></div>
+      </div>
+      <div class="frow"><label class="flabel">Agenda / Temas a tratar</label><textarea class="finput" id="rAgenda" rows="2" placeholder="Describe los temas de la reunión..." maxlength="2000"></textarea></div>
       <button class="btn-gold" style="width:auto;padding:9px 22px" id="addMeetingBtn">Agregar y confirmar</button>
       <div id="reuOk" class="alert-ok" style="display:none">✓ Reunión agregada. Recordatorios activados.</div>
+    </div>`;
+}
+
+function buildAdminMiniCalendar(p) {
+  const { y, m } = adminCalView;
+  const firstWeekday = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const meetings = p.reuniones || [];
+  const today = new Date();
+
+  let dayCells = '';
+  for (let i = 0; i < firstWeekday; i++) dayCells += '<div class="cal-d"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
+    const dayMeetings = meetings.filter(r => r.dia === d && r.mes === m && r.anio === y && r.estado !== 'Cancelada');
+    const hasMeeting = dayMeetings.length > 0;
+    let cls = 'cal-d' + (isToday ? ' today' : '');
+    if (hasMeeting) cls += ' hasbk';
+    dayCells += `<div class="${cls}" data-acal-day="${d}">${d}${hasMeeting ? `<div class="cal-meet-dots">${dayMeetings.map(r => `<span class="cal-meet-dot" style="background:${r.estado === 'Confirmada' ? 'var(--green)' : 'var(--yellow)'}" title="${esc(r.nombre)} · ${r.hora}"></span>`).join('')}</div>` : ''}</div>`;
+  }
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <button class="btn-sm" id="acalPrev">‹ Mes anterior</button>
+      <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:13px">${MONTHS[m]} ${y}</div>
+      <button class="btn-sm" id="acalNext">Mes siguiente ›</button>
+    </div>
+    <div class="cal-grid-wrap">
+      ${DAYS.map(d => `<div class="cal-dh">${d}</div>`).join('')}
+      ${dayCells}
+    </div>
+    <div style="margin-top:8px;display:flex;gap:12px;font-size:11px;color:var(--muted)">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px"></span>Confirmada</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>Solicitada</span>
     </div>`;
 }
 
 function wireAdminMeetings() {
   document.querySelectorAll('[data-reid]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const meeting = projectCache[currentProject].reuniones.find(r => r.id === btn.dataset.reid);
+      const meeting = projectCache[currentProject].reuniones.find(r => String(r.id) === String(btn.dataset.reid));
       if (!meeting) return;
-      meeting.estado = btn.dataset.action;
+      const action = btn.dataset.action;
+
+      if (action === 'edit') {
+        editingMeeting = meeting;
+        openEditMeetingModal(meeting);
+        return;
+      }
+      if (action === 'export') {
+        exportMeetingIcs(meeting);
+        return;
+      }
+      if (action === 'addNotes') {
+        openNotesModal(meeting);
+        return;
+      }
+
+      meeting.estado = action;
       await saveProject(currentProject, projectCache[currentProject]);
       if (meeting.estado === 'Confirmada') {
         scheduleReminders(meeting);
@@ -1017,16 +1350,69 @@ function wireAdminMeetings() {
     });
   });
 
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      meetingFilter = btn.dataset.filter;
+      renderAdminView();
+    });
+  });
+
+  const searchInput = document.getElementById('meetSearch');
+  if (searchInput) {
+    let searchDebounce;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        meetingSearch = searchInput.value;
+        renderAdminView();
+        setTimeout(() => {
+          const si = document.getElementById('meetSearch');
+          if (si) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+        }, 50);
+      }, 300);
+    });
+  }
+
+  document.querySelectorAll('.tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tpl = MEETING_TEMPLATES[parseInt(btn.dataset.tpl)];
+      document.getElementById('rAgenda').value = tpl.agenda;
+      document.getElementById('rDur').value = tpl.duration;
+    });
+  });
+
+  document.getElementById('acalPrev')?.addEventListener('click', () => {
+    let { y, m } = adminCalView;
+    m--; if (m < 0) { m = 11; y--; }
+    adminCalView = { y, m };
+    renderAdminView();
+  });
+  document.getElementById('acalNext')?.addEventListener('click', () => {
+    let { y, m } = adminCalView;
+    m++; if (m > 11) { m = 0; y++; }
+    adminCalView = { y, m };
+    renderAdminView();
+  });
+
   document.getElementById('addMeetingBtn')?.addEventListener('click', async () => {
     const nombre = document.getElementById('rNom').value.trim();
     const email  = document.getElementById('rEmail').value.trim();
     const dia    = parseInt(document.getElementById('rDia').value, 10);
     const mes    = parseInt(document.getElementById('rMes').value, 10);
     const hora   = document.getElementById('rHora').value;
-    if (!nombre || !email || isNaN(dia)) { alert('Completa nombre, email y día.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Email inválido.'); return; }
+    const duration = document.getElementById('rDur').value;
+    const timezone = document.getElementById('rTz').value;
+    const reminder = document.getElementById('rRem').value;
+    const recurrence = document.getElementById('rRec').value;
+    const videoLink = document.getElementById('rVideo').value.trim();
+    const agenda = document.getElementById('rAgenda').value.trim();
+    if (!nombre || !email || isNaN(dia)) { showNotif('Campos incompletos', 'Completa nombre, email y día.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showNotif('Email inválido', 'Revisa el formato del email.'); return; }
 
-    const meeting = { id: genId(), dia, mes, anio: new Date().getFullYear(), hora, nombre, email, estado: 'Confirmada' };
+    const meeting = {
+      id: genId(), dia, mes, anio: new Date().getFullYear(), hora, nombre, email,
+      estado: 'Confirmada', duration, timezone, reminder, recurrence, videoLink, agenda, notes: ''
+    };
     projectCache[currentProject].reuniones.push(meeting);
     await saveProject(currentProject, projectCache[currentProject]);
 
@@ -1037,6 +1423,98 @@ function wireAdminMeetings() {
     if (okEl) { okEl.style.display = 'block'; setTimeout(() => okEl.style.display = 'none', 4000); }
     renderAdminView();
   });
+}
+
+function openEditMeetingModal(meeting) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.id = 'editMeetModal';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">Editar reunión</div>
+      <div class="modal-sub">${esc(meeting.nombre)} · ${meeting.dia} de ${MONTHS[meeting.mes]} ${meeting.anio}</div>
+      <div class="frow"><label class="flabel">Hora</label><select class="finput" id="emHora">${SLOTS.map(s => `<option${s === meeting.hora ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
+      <div class="frow"><label class="flabel">Duración</label><select class="finput" id="emDur">${DURATIONS.map(d => `<option${d === meeting.duration ? ' selected' : ''}>${d}</option>`).join('')}</select></div>
+      <div class="frow"><label class="flabel">Zona horaria</label><select class="finput" id="emTz">${TIMEZONES.map(t => `<option${t === meeting.timezone ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="frow"><label class="flabel">Recordatorio</label><select class="finput" id="emRem">${REMINDER_OPTIONS.map(r => `<option${r === meeting.reminder ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
+      <div class="frow"><label class="flabel">Recurrencia</label><select class="finput" id="emRec">${RECURRENCE_OPTIONS.map(r => `<option${r === meeting.recurrence ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
+      <div class="frow"><label class="flabel">Link videollamada</label><input class="finput" id="emVideo" value="${esc(meeting.videoLink || '')}" placeholder="https://meet.google.com/..." maxlength="500"></div>
+      <div class="frow"><label class="flabel">Agenda</label><textarea class="finput" id="emAgenda" rows="2" maxlength="2000">${esc(meeting.agenda || '')}</textarea></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('editMeetModal');document.getElementById('editMeetModal').remove()">Cancelar</button>
+        <button class="btn-confirm" id="saveEditMeetBtn">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('saveEditMeetBtn').addEventListener('click', async () => {
+    meeting.hora = document.getElementById('emHora').value;
+    meeting.duration = document.getElementById('emDur').value;
+    meeting.timezone = document.getElementById('emTz').value;
+    meeting.reminder = document.getElementById('emRem').value;
+    meeting.recurrence = document.getElementById('emRec').value;
+    meeting.videoLink = document.getElementById('emVideo').value.trim();
+    meeting.agenda = document.getElementById('emAgenda').value.trim();
+    await saveProject(currentProject, projectCache[currentProject]);
+    closeModal('editMeetModal');
+    document.getElementById('editMeetModal').remove();
+    renderAdminView();
+  });
+}
+
+function openNotesModal(meeting) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.id = 'notesModal';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">Notas post-reunión</div>
+      <div class="modal-sub">${esc(meeting.nombre)} · ${meeting.dia} de ${MONTHS[meeting.mes]}</div>
+      <div class="frow"><label class="flabel">Notas / Resumen</label><textarea class="finput" id="notesText" rows="4" placeholder="Escribe el resumen de la reunión..." maxlength="5000">${esc(meeting.notes || '')}</textarea></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('notesModal');document.getElementById('notesModal').remove()">Cancelar</button>
+        <button class="btn-confirm" id="saveNotesBtn">Guardar notas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('saveNotesBtn').addEventListener('click', async () => {
+    meeting.notes = document.getElementById('notesText').value.trim();
+    await saveProject(currentProject, projectCache[currentProject]);
+    closeModal('notesModal');
+    document.getElementById('notesModal').remove();
+    renderAdminView();
+  });
+}
+
+function exportMeetingIcs(meeting) {
+  const dtStart = `${meeting.anio}${String(meeting.mes + 1).padStart(2, '0')}${String(meeting.dia).padStart(2, '0')}T${meeting.hora.replace(':', '')}00`;
+  const durMin = { '30 min': 30, '1 hora': 60, '1.5 horas': 90, '2 horas': 120 }[meeting.duration] || 60;
+  const endDate = new Date(meeting.anio, meeting.mes, meeting.dia, parseInt(meeting.hora.split(':')[0]), parseInt(meeting.hora.split(':')[1]) + durMin);
+  const dtEnd = `${endDate.getFullYear()}${String(endDate.getMonth() + 1).padStart(2, '0')}${String(endDate.getDate()).padStart(2, '0')}T${String(endDate.getHours()).padStart(2, '0')}${String(endDate.getMinutes()).padStart(2, '0')}00`;
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Portal Clientes//ES',
+    'BEGIN:VEVENT',
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${meeting.nombre} - Reunión`,
+    `DESCRIPTION:${(meeting.agenda || '').replace(/\n/g, '\\n')}`,
+    meeting.videoLink ? `URL:${meeting.videoLink}` : '',
+    `ORGANIZER;CN=Matias:mailto:schwarmak.dev@gmail.com`,
+    `ATTENDEE;CN=${meeting.nombre}:mailto:${meeting.email}`,
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reunion_${meeting.nombre.replace(/\s+/g, '_')}_${meeting.dia}-${meeting.mes + 1}-${meeting.anio}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotif('📥 Exportado', `Archivo .ics descargado para "${meeting.nombre}"`);
 }
 
 // ── Admin: Solicitudes ────────────────────────────────
@@ -1085,7 +1563,7 @@ function wireAdminRequests() {
   document.querySelectorAll('.del-cr-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta solicitud?')) return;
-      projectCache[currentProject].changes = projectCache[currentProject].changes.filter(c => c.id !== btn.dataset.cid);
+      projectCache[currentProject].changes = projectCache[currentProject].changes.filter(c => String(c.id) !== String(btn.dataset.cid));
       await saveProject(currentProject, projectCache[currentProject]);
       renderAdminView();
     });
@@ -1095,7 +1573,7 @@ function wireAdminRequests() {
 async function submitReply() {
   const status = document.getElementById('replyStatus').value;
   const reply  = document.getElementById('replyText').value.trim();
-  const change = projectCache[currentProject].changes.find(c => c.id === replyingId);
+  const change = projectCache[currentProject].changes.find(c => String(c.id) === String(replyingId));
   if (change) { change.status = status; if (reply) change.reply = reply; }
   await saveProject(currentProject, projectCache[currentProject]);
   closeModal('replyModal');
@@ -1129,7 +1607,13 @@ function buildCalendar() {
     dayCells += `<div class="${cls}" data-day="${d}">${d}</div>`;
   }
 
-  const bookedSlotIdxs = selDay ? activeMeetings.filter(r => r.mes === m && r.anio === y && r.dia === selDay).map(r => SLOTS.indexOf(r.hora)).filter(i => i !== -1) : [];
+  const bookedSlotIdxs = selDay ? activeMeetings.filter(r => r.mes === m && r.anio === y && r.dia === selDay).map(r => {
+    const idx = SLOTS.indexOf(r.hora);
+    const durMin = { '30 min': 1, '1 hora': 2, '1.5 horas': 3, '2 horas': 4 }[r.duration] || 2;
+    const slots = [];
+    for (let i = idx; i < Math.min(idx + durMin, SLOTS.length); i++) slots.push(i);
+    return slots;
+  }).flat() : [];
   let slotsHtml = '';
   if (selDay) {
     const slotButtons = SLOTS.map((sl, i) => {
@@ -1149,12 +1633,21 @@ function buildCalendar() {
   const confirmedHtml = confirmedMeetings.length ? `
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Reuniones confirmadas este mes</div>
-      ${confirmedMeetings.map(r => `
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--gbg);border:1px solid rgba(74,222,128,.1);border-radius:6px;margin-bottom:6px;font-size:12px">
-          <span style="color:var(--green)">✅</span>
-          <span style="flex:1">${esc(r.nombre)}</span>
-          <span style="color:var(--muted);font-family:'DM Mono',monospace">${r.dia}/${r.mes + 1} · ${r.hora}</span>
-        </div>`).join('')}
+      ${confirmedMeetings.map(r => {
+        const durLabel = r.duration || '1 hora';
+        const tzLabel = r.timezone ? r.timezone.split(' ')[0].replace('America/','').replace('Europe/','').replace('_',' ') : '';
+        return `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:10px 11px;background:var(--gbg);border:1px solid rgba(74,222,128,.1);border-radius:6px;margin-bottom:6px;font-size:12px">
+          <span style="color:var(--green);font-size:14px">✅</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:500;margin-bottom:2px">${esc(r.nombre)}</div>
+            <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${r.dia}/${r.mes + 1} · ${r.hora} · ${durLabel}${tzLabel ? ' · ' + tzLabel : ''}</div>
+            ${r.agenda ? `<div style="margin-top:4px;font-size:11px;color:var(--soft)">📋 ${esc(r.agenda)}</div>` : ''}
+            ${r.videoLink ? `<div style="margin-top:4px"><a href="${safeUrl(r.videoLink)}" target="_blank" rel="noopener noreferrer" class="video-link"> Unirse a la videollamada</a></div>` : ''}
+            ${r.notes ? `<div style="margin-top:4px;font-size:11px;color:var(--gold)"> ${esc(r.notes)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
     </div>` : '';
 
   return `
@@ -1213,7 +1706,8 @@ function wireCalendar() {
 
   document.getElementById('reqSlotBtn')?.addEventListener('click', () => {
     pendingBooking = { ...calendar };
-    document.getElementById('bookModalSub').textContent = `${calendar.selDay} de ${MONTHS[calendar.m]} ${calendar.y} · ${SLOTS[calendar.selSlot]} — Matias confirmará a la brevedad.`;
+    const dur = document.getElementById('bookDur')?.value || '1 hora';
+    document.getElementById('bookModalSub').textContent = `${calendar.selDay} de ${MONTHS[calendar.m]} ${calendar.y} · ${SLOTS[calendar.selSlot]} · ${dur} — Matias confirmará a la brevedad.`;
     openModal('bookModal', 'bookName');
   });
 }
@@ -1221,20 +1715,23 @@ function wireCalendar() {
 async function finalizeBooking() {
   const nombre = document.getElementById('bookName').value.trim();
   const email  = document.getElementById('bookEmail').value.trim();
-  if (!nombre || !email)          { alert('Completa tu nombre y email.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Email inválido.'); return; }
+  const duration = document.getElementById('bookDur').value;
+  const agenda = document.getElementById('bookAgenda').value.trim();
+  if (!nombre || !email)          { showNotif('Campos incompletos', 'Completa tu nombre y email.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showNotif('Email inválido', 'Revisa el formato del email.'); return; }
 
   const { y, m, selDay, selSlot } = pendingBooking;
   projectCache[currentProject] = await loadProject(currentProject);
   projectCache[currentProject].reuniones.push({
     id: genId(), dia: selDay, mes: m, anio: y,
     hora: SLOTS[selSlot], nombre, email, estado: 'Solicitada',
+    duration, agenda, timezone: 'America/Santiago (GMT-3)', reminder: '1 hora antes', recurrence: 'Sin repetir', videoLink: '', notes: ''
   });
   await saveProject(currentProject, projectCache[currentProject]);
 
   calendar.selSlot = null;
   closeModal('bookModal');
-  ['bookName', 'bookEmail'].forEach(id => document.getElementById(id).value = '');
+  ['bookName', 'bookEmail', 'bookAgenda'].forEach(id => document.getElementById(id).value = '');
   showNotif('Solicitud enviada 📅', `${selDay} de ${MONTHS[m]} a las ${SLOTS[selSlot]}. Matias confirmará pronto.`);
 
   document.getElementById('cMain').innerHTML = buildCalendar();
@@ -1251,6 +1748,7 @@ function openModal(id, focusId) {
   lastFocusedEl = document.activeElement;
   const modal = document.getElementById(id);
   modal.classList.add('open');
+  if (id === 'themeModal') updateThemePickerActive();
   if (focusId) setTimeout(() => document.getElementById(focusId)?.focus(), 100);
 }
 function closeModal(id) {
@@ -1296,6 +1794,19 @@ function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/`/g,'&#96;');
 }
 
+function safeUrl(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return '';
+    return esc(url);
+  } catch { return esc(url); }
+}
+
+function log(...args) {
+  if (DEBUG) console.error(...args);
+}
+
 function showConfigBanner() {
   const mainId = currentUser?.role === 'admin' ? 'aMain' : 'cMain';
   const main   = document.getElementById(mainId);
@@ -1305,3 +1816,36 @@ function showConfigBanner() {
   banner.innerHTML = `⚠️ <div><strong>Modo demo</strong> — Los datos se guardan solo en este navegador. Para producción, edita las 2 líneas de configuración en app.js con tus credenciales de Supabase.</div>`;
   main.prepend(banner);
 }
+
+// ═══════════════════════════════════════════════════════
+//  TEMAS
+// ═══════════════════════════════════════════════════════
+function applyTheme(theme) {
+  if (theme === 'default') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  localStorage.setItem('portal_theme', theme);
+  updateThemePickerActive();
+  closeModal('themeModal');
+}
+
+function loadSavedTheme() {
+  const saved = localStorage.getItem('portal_theme');
+  const validThemes = ['default', 'rosado', 'verde', 'celeste'];
+  if (saved && validThemes.includes(saved) && saved !== 'default') {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+}
+
+function updateThemePickerActive() {
+  const current = document.documentElement.getAttribute('data-theme') || 'default';
+  document.querySelectorAll('.theme-opt').forEach(opt => {
+    opt.style.borderColor = opt.dataset.theme === current ? 'var(--gold)' : '';
+    opt.style.background  = opt.dataset.theme === current ? 'var(--gg)' : '';
+  });
+}
+
+// Cargar tema al iniciar
+loadSavedTheme();

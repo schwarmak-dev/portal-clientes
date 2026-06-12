@@ -68,6 +68,11 @@ CREATE POLICY "public_read_projects"
   ON projects FOR SELECT
   USING (true);
 
+CREATE POLICY "write_projects_via_rpc"
+  ON projects FOR ALL
+  USING (false)
+  WITH CHECK (false);
+
 -- Escritura en projects: SOLO mediante service_role (backend seguro).
 -- El frontend NUNCA debe poder escribir directamente.
 -- Para habilitar escritura segura desde el frontend, usa una función RPC
@@ -82,6 +87,11 @@ CREATE POLICY "public_read_projects"
 CREATE POLICY "public_read_users"
   ON users FOR SELECT
   USING (true);
+
+CREATE POLICY "write_users_via_rpc"
+  ON users FOR ALL
+  USING (false)
+  WITH CHECK (false);
 
 -- IMPORTANTE: No hay política de escritura en users desde el frontend.
 -- Para crear usuarios, usa siempre el SQL Editor de Supabase.
