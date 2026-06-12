@@ -19,7 +19,7 @@
 Olvídate de los emails interminables y las llamadas de "¿cómo va el proyecto?".
 Tus clientes se logean, ven su progreso, y tú te ahorras tiempo.
 
-[🚀 Demo Rápida](#-quick-start) · [ Instalación](#-quick-start) · [️ Personalizar](#-personalizar) · [🌐 Probar Online](https://schwarmak-dev.github.io/portal-clientes/)
+[🚀 Demo Rápida](#-quick-start) · [ Instalación](#-quick-start) · [️ Personalizar](#-personalizar) 
 
 ---
 
