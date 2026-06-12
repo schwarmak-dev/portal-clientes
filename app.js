@@ -27,7 +27,7 @@ const PRESET_ICONS = ['🖥','📱','🎨','⚙️','⚡','🚀','📊','📋','
 // ─── Datos demo (fallback cuando Supabase no está configurado) ───────────────
 const FALLBACK_PROJECTS = {
   acme: {
-    name: 'Rediseño Web Completo', client: 'ACME Corp', progress: 78,
+    name: 'Portal Clientes', client: 'ACME Corp', progress: 78,
     phases: ['Discovery','UX/UI','Desarrollo','QA','Lanzamiento'], phaseDone: 3,
     done: [
       { id:1, name:'Auditoría UX inicial',          date:'12 Mar 2025' },
@@ -57,7 +57,7 @@ const FALLBACK_PROJECTS = {
     ],
   },
   nova: {
-    name: 'App Móvil MVP', client: 'Nova Inc', progress: 45,
+    name: 'Portal Clientes', client: 'Nova Inc', progress: 45,
     phases: ['Research','Diseño','Backend','Frontend','Launch'], phaseDone: 2,
     done: [
       { id:1, name:'Investigación de usuarios', date:'5 Abr 2025' },

@@ -208,7 +208,7 @@ INSERT INTO projects (slug, data) VALUES (
 
 ### Security Audit
 
-🛡️ **Camilo Martinez** — Auditoría de seguridad y corrección de 33 vulnerabilidades
+🛡️ **[Camilo Martinez](https://github.com/camilo-martinez)** — Auditoría de seguridad, detección y corrección de 33 vulnerabilidades críticas
 
 ---
 
@@ -218,18 +218,33 @@ MIT © 2025 Schwarmak
 
 ---
 
-## 🐛 Security Audit
+## ️ Security Audit
 
-Este proyecto fue auditado y se corrigieron **33 vulnerabilidades**:
+> **Auditoría de seguridad realizada por [Camilo Martinez](https://github.com/camilo-martinez)** — Especialista en Ciberseguridad
+
+Este proyecto fue auditado exhaustivamente y se corrigieron **33 vulnerabilidades** identificadas:
 
 | Severidad | Cantidad | Ejemplos |
 |-----------|----------|----------|
-| 🔴 Crítica | 5 | Credenciales expuestas, SQL sin auth |
+| 🔴 Crítica | 5 | Credenciales expuestas, SQL sin autenticación |
 | 🟠 Alta | 8 | XSS, memory leaks, race conditions |
-|  Media | 12 | Code quality, RLS policies |
-| 🟢 Baja | 8 | Accesibilidad, performance |
+| 🟡 Media | 12 | Code quality, RLS policies, session management |
+|  Baja | 8 | Accesibilidad, performance, UX |
 
-**Auditado por:** Camilo Martinez — Ciberseguridad
+### Contribución de Camilo Martinez
+
+ **Detección de vulnerabilidades** — Identificó problemas críticos de seguridad incluyendo:
+- Credenciales hardcodeadas en código cliente
+- Funciones SQL sin autorización (cualquiera podía modificar datos)
+- XSS via URLs maliciosas
+- Memory leaks y race conditions
+
+🛠️ **Corrección y mejores prácticas** — Guió la implementación de:
+- Hash SHA-256 para contraseñas (demo) / bcrypt (producción)
+- Row Level Security (RLS) en Supabase
+- Rate limiting en login
+- Sanitización de URLs y inputs
+- Gestión segura de sesiones
 
 ---
 
