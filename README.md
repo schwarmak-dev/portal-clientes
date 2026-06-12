@@ -14,10 +14,12 @@
 
 **Un portal de clientes que hace que tu negocio freelance se vea 10x más profesional.**
 
+🌐 **Probar ahora:** [https://schwarmak-dev.github.io/portal-clientes/](https://schwarmak-dev.github.io/portal-clientes/)
+
 Olvídate de los emails interminables y las llamadas de "¿cómo va el proyecto?".
 Tus clientes se logean, ven su progreso, y tú te ahorras tiempo.
 
-[🚀 Demo Rápida](#-quick-start) · [📦 Instalación](#-quick-start) · [🛠️ Personalizar](#-personalizar)
+[🚀 Demo Rápida](#-quick-start) · [ Instalación](#-quick-start) · [️ Personalizar](#-personalizar) · [🌐 Probar Online](https://schwarmak-dev.github.io/portal-clientes/)
 
 ---
 
@@ -220,7 +222,7 @@ MIT © 2025 Schwarmak
 
 ## ️ Security Audit
 
-> **Auditoría de seguridad realizada por [Camilo Martinez](https://github.com/camilo-martinez)** — Especialista en Ciberseguridad
+> **Auditoría de seguridad realizada por [Camilo Martinez](https://github.com/camilo-martinez)** — El que dirigió la seguridad en el proyecto
 
 Este proyecto fue auditado exhaustivamente y se corrigieron **33 vulnerabilidades** identificadas:
 
@@ -256,6 +258,6 @@ Este proyecto fue auditado exhaustivamente y se corrigieron **33 vulnerabilidade
 
 ---
 
-*Hecho con ☕ y mucho ☕ para freelancers que valoran el tiempo*
+*Hecho con cariño mi gente, ocupenlo, es todo para ustedes, aprovechenlo, para que puedan seguir con su camino ninja*
 
 </div>
