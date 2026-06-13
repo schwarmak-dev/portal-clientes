@@ -210,7 +210,7 @@ INSERT INTO projects (slug, data) VALUES (
 
 ### Security Audit
 
-🛡️ **[Camilo Martinez](https://github.com/camilo-martinez)** — Auditoría de seguridad, detección y corrección de 33 vulnerabilidades críticas
+🛡️ **[Camilo Martinez](https://github.com/HKTamilo)** — Auditoría de seguridad, detección y corrección de 33 vulnerabilidades críticas
 
 ---
 
